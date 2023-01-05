@@ -1,10 +1,13 @@
 import os
-
+from collections import defaultdict
 import folium as folium
 from folium.plugins import HeatMap, MarkerCluster
-from cell_reader import where_are_my_cells
 import numpy as np
 import pandas as pd
+import branca.colormap
+
+from cell_calculation import get_unique_cells_in_drive
+
 
 def read_log(file_name):
     path = file_name
@@ -19,10 +22,29 @@ def euclidean_distance(row):
     y2 = row['longitude_perimeter_shift']
     return np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
 
+picke_name = 'pickle_rick.pkl'
+big_df = pd.read_pickle(picke_name)
+drives = [v for k, v in big_df.groupby(['date', 'time'])]
+#Now filter according to modem in each drive
+drives_by_modem = []
+for i in range(len(drives)):
+    drives_by_modem.append([v for k, v in drives[i].groupby('modem_id')])
+#each drive is broken into 6 modems. There are 600 drives and at most 6 modems.
+x=5
+locations_in_drive = get_unique_cells_in_drive(drives_by_modem[0][0])
+cells_per_drive_per_modem = []
+for i in range(len(drives_by_modem)):
+    for j in range(len(drives_by_modem[i])):
+        cells_per_drive_per_modem.append(get_unique_cells_in_drive(drives_by_modem[i][j]))
+
+
+x=5
+
 
 file_name = '20221212_154546_ironhide_measurements_internal.csv'
 drive_df = read_log(file_name)
-unique_cells_in_this_drive = drive_df['globalcellid'].unique()
+
+unique_cells_in_this_drive = drive_df['globalcellid'].unique() #unique cells from the data-frame
 cell_dfs_list = []
 for cell in unique_cells_in_this_drive:
     cell_name = int('0x' + cell[:-2], 16)
@@ -39,7 +61,7 @@ all_cells_df = pd.concat(cell_dfs_list, axis=0, join='outer')
 # Create a map object
 locations = drive_df[['latitude_perimeter', 'longitude_perimeter']]
 locationlist = locations.values.tolist()
-m = folium.Map(location=[32.17752, 34.93073], zoom_start=15)
+map_object = folium.Map(location=[32.17752, 34.93073], zoom_start=15)
 unique_IMEIs = drive_df['imei'].unique()
 modems_holder = {}
 stat_holder = {}
@@ -47,6 +69,8 @@ map_speed = folium.Map(location=[32.17752, 34.93073], zoom_start=15)
 map_switchover = folium.Map(location=[32.17752, 34.93073], zoom_start=15)
 map_loss = folium.Map(location=[32.17752, 34.93073], zoom_start=15)
 map_rsrp = folium.Map(location=[32.17752, 34.93073], zoom_start=15)
+
+#making the cells according to range
 for index, row in all_cells_df.iterrows():
     folium.Circle((row['lat'], row['lon']), radius=row['range']/2, fill=True, ocacity=0.9, weight=2).add_to(map_switchover)
 
@@ -65,12 +89,16 @@ for imei in unique_IMEIs:
     modems_holder[imei]['speed'] = modems_holder[imei]['distance'] * 60 * 60 * 111 * -1
     modems_holder[imei].fillna(0, inplace=True)
     # Add a layer with markers
-    # data1 = modems_holder[imei][['latitude_perimeter', 'longitude_perimeter', 'speed']].groupby(['latitude_perimeter', 'longitude_perimeter']).mean().reset_index()
+    import branca.colormap as cm
+
+    colormap = cm.linear.RdYlGn_11.scale(0, 35).to_step(20)
+    colormap.caption = 'Green is greater velocity'
+    map_speed.add_child(colormap)
+
     data1 = modems_holder[imei][['latitude_perimeter', 'longitude_perimeter', 'speed']]
     data_filt1 = data1.values.tolist()
-    HeatMap(data=data_filt1, use_local_extrema=False, min_opacity=0.5,
-            max_opacity=0.9,
-            radius=25).add_to(folium.FeatureGroup(name=str(imei) + ' speed').add_to(map_speed))
+    HeatMap(data=data_filt1, use_local_extrema=False, min_opacity=0.5,max_opacity=0.95,radius=15)\
+        .add_to(folium.FeatureGroup(name=str(imei) + ' speed').add_to(map_speed))
 
     # data2 = modems_holder[imei][['latitude_perimeter', 'longitude_perimeter', 'switchover']].groupby(['latitude_perimeter', 'longitude_perimeter']).mean().reset_index()
     data2 = modems_holder[imei][['latitude_perimeter', 'longitude_perimeter', 'switchover']]
