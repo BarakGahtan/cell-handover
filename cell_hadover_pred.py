@@ -30,32 +30,15 @@ drives_by_modem = []
 for i in range(len(drives)):
     drives_by_modem.append([v for k, v in drives[i].groupby('modem_id')])
 #each drive is broken into 6 modems. There are 600 drives and at most 6 modems.
-x=5
-locations_in_drive = get_unique_cells_in_drive(drives_by_modem[0][0])
-cells_per_drive_per_modem = []
-for i in range(len(drives_by_modem)):
+
+cells_per_drive_per_modem = {}
+for i in range(5): #len(drives_by_modem)
+    y = 5
     for j in range(len(drives_by_modem[i])):
-        cells_per_drive_per_modem.append(get_unique_cells_in_drive(drives_by_modem[i][j]))
-
-
-x=5
-
-
-file_name = '20221212_154546_ironhide_measurements_internal.csv'
-drive_df = read_log(file_name)
-
-unique_cells_in_this_drive = drive_df['globalcellid'].unique() #unique cells from the data-frame
-cell_dfs_list = []
-for cell in unique_cells_in_this_drive:
-    cell_name = int('0x' + cell[:-2], 16)
-    cells_locations = where_are_my_cells(cell_name)
-    if cells_locations.empty:
-        cells_locations = where_are_my_cells(cell[:-2])
-    if cells_locations.empty:
-        print('oops')
-    cell_dfs_list.append(cells_locations)
-
-all_cells_df = pd.concat(cell_dfs_list, axis=0, join='outer')
+        key_to_insert = str(drives_by_modem[i][j]['date'][0]+'_'+drives_by_modem[i][j]['time'][0]+'_'+drives_by_modem[i][j]['modem_id'][0])
+        cells_per_drive_per_modem[key_to_insert] = get_unique_cells_in_drive(drives_by_modem[i][j])
+x =5
+# all_cells_df = pd.concat(cell_dfs_list, axis=0, join='outer')
 
 
 # Create a map object
