@@ -4,7 +4,8 @@ def where_are_my_cells(cell_num):
     cell_location_israel = pd.read_csv('425_new.csv')
     cell_location_israel['cell'] = cell_location_israel['cell'].astype('str')
     mask = cell_location_israel['cell'].str.startswith(str(cell_num))
-    result = cell_location_israel[mask]
+    result = cell_location_israel[mask].drop('radio', axis=1).astype(float)
+    result = pd.DataFrame(result.mean()).transpose() #average for cell
     if result.empty:
         mask = cell_location_israel['cell'].str.contains(str(cell_num))
         result = cell_location_israel[mask]

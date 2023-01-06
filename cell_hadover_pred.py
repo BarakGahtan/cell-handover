@@ -8,20 +8,6 @@ import branca.colormap
 
 from cell_calculation import get_unique_cells_in_drive
 
-
-def read_log(file_name):
-    path = file_name
-    df = pd.read_csv(path)
-    return df
-
-# Define a function to calculate the Euclidean distance between two points
-def euclidean_distance(row):
-    x1 = row['latitude_perimeter']
-    y1 = row['longitude_perimeter']
-    x2 = row['latitude_perimeter_shift']
-    y2 = row['longitude_perimeter_shift']
-    return np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
-
 picke_name = 'pickle_rick.pkl'
 big_df = pd.read_pickle(picke_name)
 drives = [v for k, v in big_df.groupby(['date', 'time'])]
@@ -31,16 +17,23 @@ for i in range(len(drives)):
     drives_by_modem.append([v for k, v in drives[i].groupby('modem_id')])
 #each drive is broken into 6 modems. There are 600 drives and at most 6 modems.
 
-cells_per_drive_per_modem = {}
-for i in range(5): #len(drives_by_modem)
+cells_per_drive_per_modem_avg = {}
+for i in range(1):  # len(drives_by_modem)
     y = 5
     for j in range(len(drives_by_modem[i])):
-        key_to_insert = str(drives_by_modem[i][j]['date'][0]+'_'+drives_by_modem[i][j]['time'][0]+'_'+drives_by_modem[i][j]['modem_id'][0])
-        cells_per_drive_per_modem[key_to_insert] = get_unique_cells_in_drive(drives_by_modem[i][j])
-x =5
-# all_cells_df = pd.concat(cell_dfs_list, axis=0, join='outer')
+        key_to_insert = str(drives_by_modem[i][j]['date'].iloc[0] + '_' + drives_by_modem[i][j]['time'].iloc[0] + '_' +
+                            drives_by_modem[i][j]['modem_id'].iloc[0])
+        cells_per_drive_per_modem_avg[key_to_insert] = pd.concat(get_unique_cells_in_drive(drives_by_modem[i][j]), axis=0,
+                                                                 join='outer').dropna(axis=0)
+x = 5
 
 
+for key, value in cells_per_drive_per_modem_avg.items():
+    locations_in_drive_per_modem = cells_per_drive_per_modem_avg[key][['lat', 'lon']]
+    locations_to_list = locations_in_drive_per_modem.values.toList()
+    x = 5
+
+x=5
 # Create a map object
 locations = drive_df[['latitude_perimeter', 'longitude_perimeter']]
 locationlist = locations.values.tolist()
