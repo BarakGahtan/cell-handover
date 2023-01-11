@@ -6,20 +6,22 @@ import numpy as np
 import pandas as pd
 import branca.colormap
 
+import cell_calculation
 from aux_functions import euclidean_distance
 from cell_calculation import get_unique_cells_in_drive
 
-NUM_DRIVES = 3
+NUM_DRIVES = 2
 picke_name = 'pickle_rick.pkl'
 big_df = pd.read_pickle(picke_name)
 drives = [v for k, v in big_df.groupby(['date', 'time'])]  # filter according to start of the drive. unique.
+
 # Now filter according to modem in each drive
 drives_by_modem = []
 for i in range(len(drives)):
     drives_by_modem.append([v for k, v in drives[i].groupby('modem_id')])
 # drive_by_modems is list of lists. each drive is a list of lists. the list inside is for diff modems.
 
-# each drive is broken into 6 modems. There are 600 drives and at most 6 modems.
+# each drive is broken into 5-6 modems. There are 600 drives and at most 6 modems.
 drives_by_modem_dict = {}
 for i in range(NUM_DRIVES):  # len(drives_by_modem)
     for j in range(len(drives_by_modem[i])):  # len(drives_by_modem[i]) - number os modems in drive.
@@ -49,25 +51,24 @@ for key in drives_by_modem_dict.keys():
 
     # making the cells according to range
     for index, row in cells_per_drive_per_modem_avg[key].iterrows():
-        folium.Circle((row['lat'], row['lon']), radius=row['range'] / 2, fill=True, ocacity=0.9, weight=2).add_to(
-            map_switchover_for_drive_for_modem)
+        folium.Circle((row['lat'], row['lon']), radius=row['range'] / 2, fill=True, max_opacity=0.9, weight=3).add_to(map_switchover_for_drive_for_modem)
 
     for imei in unique_IMEIs_per_drive_per_modem:
         modems_holder[imei] = drives_by_modem_dict[key][drives_by_modem_dict[key]['imei'] == imei]
-        modems_holder[imei].insert(18, "switchover", 0, allow_duplicates=False)
-        modems_holder[imei].replace(999999, np.nan, inplace=True)
-        modems_holder[imei].ffill(inplace=True)
-        modems_holder[imei].bfill(inplace=True)
-        modems_holder[imei]['globacellid_shift'] = modems_holder[imei]['globalcellid'].shift()
-        modems_holder[imei]['switchover'] = modems_holder[imei].apply(
-            lambda x: 0 if x['globalcellid'] == x['globacellid_shift'] else 1, axis=1)
+        # modems_holder[imei].insert(18, "switchover", 0, allow_duplicates=False)
+        # modems_holder[imei].replace(999999, np.nan, inplace=True)
+        # modems_holder[imei].ffill(inplace=True)
+        # modems_holder[imei].bfill(inplace=True)
+        # modems_holder[imei]['globacellid_shift'] = modems_holder[imei]['globalcellid'].shift()
+        # modems_holder[imei]['switchover'] = modems_holder[imei].apply(
+        #     lambda x: 0 if x['globalcellid'] == x['globacellid_shift'] else 1, axis=1)
         modems_holder[imei]['latitude_perimeter_shift'] = modems_holder[imei]['latitude_perimeter'].shift()
         modems_holder[imei]['longitude_perimeter_shift'] = modems_holder[imei]['longitude_perimeter'].shift()
-
         # Calculate the Euclidean distance between the two points for each row
         modems_holder[imei]['distance'] = modems_holder[imei].apply(euclidean_distance, axis=1)
         modems_holder[imei]['speed'] = modems_holder[imei]['distance'] * 60 * 60 * 111 * -1
         modems_holder[imei].fillna(0, inplace=True)
+        cell_calculation.calculate_switchover(modems_holder[imei])
         # Add a layer with markers
         import branca.colormap as cm
 
