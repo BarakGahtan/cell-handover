@@ -4,8 +4,7 @@ import folium as folium
 from folium.plugins import HeatMap, MarkerCluster
 import numpy as np
 import pandas as pd
-import branca.colormap
-
+import branca.colormap as cm
 import cell_calculation
 from aux_functions import euclidean_distance
 from cell_calculation import get_unique_cells_in_drive
@@ -44,15 +43,15 @@ for key in drives_by_modem_dict.keys():
     locations_to_list = locations_in_drive_per_modem.values.tolist()
     unique_IMEIs_per_drive_per_modem = drives_by_modem_dict[key]['imei'].unique()
     modems_holder, stat_holder = {}, {}
-    map_speed_for_drive_for_modem = folium.Map(location=[32.17752, 34.93073], zoom_start=15)
-    map_switchover_for_drive_for_modem = folium.Map(location=[32.17752, 34.93073], zoom_start=15)
-    map_loss_for_drive_for_modem = folium.Map(location=[32.17752, 34.93073], zoom_start=15)
-    map_rsrp_for_drive_for_modem = folium.Map(location=[32.17752, 34.93073], zoom_start=15)
+    map_speed_for_drive_for_modem = folium.Map(location=[32.17752, 34.93073], zoom_start=25)
+    map_switchover_for_drive_for_modem = folium.Map(location=[32.17752, 34.93073], zoom_start=25)
+    map_loss_for_drive_for_modem = folium.Map(location=[32.17752, 34.93073], zoom_start=25)
+    map_rsrp_for_drive_for_modem = folium.Map(location=[32.17752, 34.93073], zoom_start=25)
 
     # making the cells according to range
-    for index, row in cells_per_drive_per_modem_avg[key].iterrows():
-        folium.Circle((row['lat'], row['lon']), radius=row['range'] / 2, fill=True, max_opacity=0.9, weight=3).add_to(map_switchover_for_drive_for_modem)
-
+    all_cells_df = cells_per_drive_per_modem_avg[key].reset_index()
+    for index, row in all_cells_df.iterrows():
+        folium.Circle((row['lat'], row['lon']), radius=row['range'], fill=True, opacity=0.9, weight=2).add_to(map_switchover_for_drive_for_modem)
     for imei in unique_IMEIs_per_drive_per_modem:
         modems_holder[imei] = drives_by_modem_dict[key][drives_by_modem_dict[key]['imei'] == imei]
         # modems_holder[imei].insert(18, "switchover", 0, allow_duplicates=False)
@@ -69,13 +68,10 @@ for key in drives_by_modem_dict.keys():
         modems_holder[imei]['speed'] = modems_holder[imei]['distance'] * 60 * 60 * 111 * -1
         modems_holder[imei].fillna(0, inplace=True)
         cell_calculation.calculate_switchover(modems_holder[imei])
-        # Add a layer with markers
-        import branca.colormap as cm
 
         colormap = cm.linear.RdYlGn_11.scale(0, 35).to_step(20)
         colormap.caption = 'Green is greater velocity'
         map_speed_for_drive_for_modem.add_child(colormap)
-
         data1 = modems_holder[imei][['latitude_perimeter', 'longitude_perimeter', 'speed']]
         data_filt1 = data1.values.tolist()
         HeatMap(data=data_filt1, use_local_extrema=False, min_opacity=0.5, max_opacity=0.95, radius=15) \
@@ -91,10 +87,7 @@ for key in drives_by_modem_dict.keys():
                           popup=row['switchover']).add_to(marker_cluster)
 
         data_filt2 = data2.values.tolist()
-        gradient = {0.1: 'green', 0.3: 'red'}
-        HeatMap(data=data_filt2, use_local_extrema=False, min_opacity=0.0, gradient=gradient,
-                max_opacity=0.95,
-                radius=10).add_to(
+        HeatMap(data=data_filt2, use_local_extrema=False, min_opacity=0.0,max_opacity=0.95,radius=10).add_to(
             folium.FeatureGroup(name=str(imei) + ' switchover').add_to(map_switchover_for_drive_for_modem))
 
         # data3 = modems_holder[imei][['latitude_perimeter', 'longitude_perimeter', 'loss_rate']].groupby([
