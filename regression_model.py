@@ -1,3 +1,4 @@
+import copy
 import time
 import pandas as pd
 from sklearn.tree import DecisionTreeRegressor
@@ -33,3 +34,22 @@ def dec_tree(df_with_lost_frames, shift, m):
 
     px.line(plot1_df).write_html('real_vs_pred_dec_tree' + str(m) + '_plus_' + str(shift) + '.html')
     return model
+
+
+def build_regression_model(drives_by_imei_dictionary):
+    for imei in drives_by_imei_dictionary.keys():
+        data_to_work_on = drives_by_imei_dictionary[imei].drop(
+            ['client_id', 'date', 'time', 'modem_id', 'imei', 'imsi', 'simIdentifier', 'network_type', 'operator',
+             'globalcellid', 'band', 'servingcellid', 'source_name', 'globacellid_shift', 'timestamp'], axis=1)
+        switchover_target_label = drives_by_imei_dictionary[imei]['switchover']
+        look_back = 6
+        for i in range(1, look_back):
+            for col in data_to_work_on.columns:
+                if col != 'switchover':
+                    if col[-2] == '-':
+                        col_name = col[:-1] + str(i)
+                    else:
+                        col_name = col + '-' + str(i)
+                    data_to_work_on[col_name] = data_to_work_on[col].shift(-1)
+        data_to_work_on = copy.deepcopy(data_to_work_on.iloc[1:-look_back])
+        dec_tree(data_to_work_on, look_back, imei)

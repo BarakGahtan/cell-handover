@@ -8,6 +8,7 @@ import branca.colormap as cm
 import cell_calculation
 from aux_functions import euclidean_distance
 from cell_calculation import get_unique_cells_in_drive
+from regression_model import build_regression_model
 
 # filter according to start of the drive. unique.
 NUM_DRIVES = 1
@@ -28,7 +29,8 @@ def init_dataset(pickle_name, drive_num):
     # for i in range(NUM_DRIVES):  # len(drives_by_modem)
     for j in range(len(sort_drives_by_modem[DRIVE_NUM])):  # len(drives_by_modem[i]) - number os modems in drive.
         key_for_dict = str(
-            sort_drives_by_modem[DRIVE_NUM][j]['date'].iloc[0] + '_' + sort_drives_by_modem[DRIVE_NUM][j]['time'].iloc[0] + '_' +
+            sort_drives_by_modem[DRIVE_NUM][j]['date'].iloc[0] + '_' + sort_drives_by_modem[DRIVE_NUM][j]['time'].iloc[
+                0] + '_' +
             str(sort_drives_by_modem[DRIVE_NUM][j]['imei'].iloc[0]))
         drives_by_imei_dictionary[key_for_dict] = sort_drives_by_modem[DRIVE_NUM][j]
     return sort_drives_by_modem, drives_by_imei_dictionary
@@ -39,7 +41,8 @@ def init_dataset(pickle_name, drive_num):
 def get_cells_per_drive_in_dataset(drives_by_imei_dictionary):
     cells_per_drive_per_modem_avg = {}
     for key in drives_by_imei_dictionary.keys():  # len(drives_by_modem)
-        cells_per_drive_per_modem_avg[key] = pd.concat(get_unique_cells_in_drive(drives_by_imei_dictionary[key]), axis=0,
+        cells_per_drive_per_modem_avg[key] = pd.concat(get_unique_cells_in_drive(drives_by_imei_dictionary[key]),
+                                                       axis=0,
                                                        join='outer').dropna(axis=0)
     return cells_per_drive_per_modem_avg
 
@@ -51,7 +54,8 @@ def prepare_switchover_col(drives_by_imei_dictionary):
         drives_by_imei_dictionary[key]['globacellid_shift'] = drives_by_imei_dictionary[key]['globalcellid'].shift()
         drives_by_imei_dictionary[key]['globalcellid'] = drives_by_imei_dictionary[key].apply(
             lambda x: x['globacellid_shift'] if x['globalcellid'] == 0 else x['globalcellid'], axis=1)
-        cell_calculation.calculate_switchover(drives_by_imei_dictionary[key])  # Calculate switch over per drive per imei
+        cell_calculation.calculate_switchover(
+            drives_by_imei_dictionary[key])  # Calculate switch over per drive per imei
     return drives_by_imei_dictionary
 
 
@@ -60,10 +64,11 @@ def visualize_drives(drives_by_imei_dictionary, cells_per_drive_per_modem_avg):
         locations_in_drive_per_modem = cells_per_drive_per_modem_avg[key][['lat', 'lon']]
         locations_to_list = locations_in_drive_per_modem.values.tolist()
         modems_holder, stat_holder = {}, {}
-        map_speed_for_drive_for_modem = folium.Map(location=[32.17752, 34.93073], zoom_start=10)# Create a map object
-        map_switchover_for_drive_for_modem = folium.Map(location=[32.17752, 34.93073], zoom_start=10)# Create a map object
-        map_loss_for_drive_for_modem = folium.Map(location=[32.17752, 34.93073], zoom_start=10)# Create a map object
-        map_rsrp_for_drive_for_modem = folium.Map(location=[32.17752, 34.93073], zoom_start=10)# Create a map object
+        map_speed_for_drive_for_modem = folium.Map(location=[32.17752, 34.93073], zoom_start=10)  # Create a map object
+        map_switchover_for_drive_for_modem = folium.Map(location=[32.17752, 34.93073],
+                                                        zoom_start=10)  # Create a map object
+        map_loss_for_drive_for_modem = folium.Map(location=[32.17752, 34.93073], zoom_start=10)  # Create a map object
+        map_rsrp_for_drive_for_modem = folium.Map(location=[32.17752, 34.93073], zoom_start=10)  # Create a map object
 
         # making the cells according to range
         all_cells_df = cells_per_drive_per_modem_avg[key].reset_index()
@@ -71,8 +76,10 @@ def visualize_drives(drives_by_imei_dictionary, cells_per_drive_per_modem_avg):
             folium.Circle((row['lat'], row['lon']), radius=row['range'], fill=True, opacity=0.9, weight=2).add_to(
                 map_switchover_for_drive_for_modem)
 
-        drives_by_imei_dictionary[key]['latitude_perimeter_shift'] = drives_by_imei_dictionary[key]['latitude_perimeter'].shift()
-        drives_by_imei_dictionary[key]['longitude_perimeter_shift'] = drives_by_imei_dictionary[key]['longitude_perimeter'].shift()
+        drives_by_imei_dictionary[key]['latitude_perimeter_shift'] = drives_by_imei_dictionary[key][
+            'latitude_perimeter'].shift()
+        drives_by_imei_dictionary[key]['longitude_perimeter_shift'] = drives_by_imei_dictionary[key][
+            'longitude_perimeter'].shift()
         # Calculate the Euclidean distance between the two points for each row
         drives_by_imei_dictionary[key]['distance'] = drives_by_imei_dictionary[key].apply(euclidean_distance, axis=1)
         drives_by_imei_dictionary[key]['speed'] = drives_by_imei_dictionary[key]['distance'] * 60 * 60 * 111 * -1
@@ -136,4 +143,5 @@ if __name__ == "__main__":
     drives_by_modem, returned_drives_by_imei_dict = init_dataset('pickle_rick.pkl', DRIVE_NUM)
     cells_per_drives_in_dataset = get_cells_per_drive_in_dataset(returned_drives_by_imei_dict)
     drives_by_imei_dict = prepare_switchover_col(returned_drives_by_imei_dict)
-    visualize_drives(returned_drives_by_imei_dict, cells_per_drives_in_dataset)
+    # visualize_drives(returned_drives_by_imei_dict, cells_per_drives_in_dataset)
+    build_regression_model(drives_by_imei_dict)
