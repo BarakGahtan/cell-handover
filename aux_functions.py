@@ -1,10 +1,12 @@
 import pandas as pd
 import numpy as np
 
+
 def read_log(file_name):
     path = file_name
     df = pd.read_csv(path)
     return df
+
 
 # Define a function to calculate the Euclidean distance between two points
 def euclidean_distance(row):
