@@ -6,29 +6,28 @@ def where_are_my_cells(cell_num):
     cell_location_israel['cell'] = cell_location_israel['cell'].astype('str')
     mask = cell_location_israel['cell'].str.startswith(str(cell_num))
     result = cell_location_israel[mask].drop('radio', axis=1).astype(float)
-    # result = pd.DataFrame(result.mean()).transpose()  # average for cell
+    result = pd.DataFrame(result.mean()).transpose()  # average for cell
     if result.empty:
         mask = cell_location_israel['cell'].str.contains(str(cell_num))
         result = cell_location_israel[mask]
-
     return result
 
 
 def get_unique_cells_in_drive(df):
-    unique_cells_in_this_drive = df['globalcellid'].unique()  # unique cells from the data-frame
+    unique_cells_in_this_drive = df['globalcellid'].unique().astype(int) # unique cells from the data-frame
     cell_dfs_list = []
     cell_name = ''
     for cell in unique_cells_in_this_drive:
-        if isinstance(cell, float):
-            if cell == 0:
-                cell = '0'
-                cell_name = int('0')
-            else:
-                cell = str(int(cell))
-                cell_name = int('0x' + cell[:-2], 16)
+        # if isinstance(cell, float):
+        #     if cell == 0:
+        #         cell = '0'
+        #         cell_name = int('0')
+        #     else:
+        # cell = str(cell)
+        # cell_name = int('0x' + cell[:-2], 16)
+        # cell_name = int(cell[:-2], 16)
+        cell_name = cell
         cells_locations = where_are_my_cells(cell_name)
-        if cells_locations.empty:
-            cells_locations = where_are_my_cells(cell[:-2])
         if cells_locations.empty:
             print('oops')
         cell_dfs_list.append(cells_locations)
