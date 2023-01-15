@@ -158,9 +158,11 @@ def prepare_distance_to_cells(drives_dict, cells_location_dict):
             drives_dict[key].at[i, 'celllong'] = cell_long
         # drives_dict[key] = drives_dict[key].assign(
         #     disttocell=lambda x: getDistanceBetweenPointsNew(x['latitude'],x['longitude'],  x['celllat'], x['celllong']))
-        drives_dict[key] = drives_dict[key].assign(
-            dist2cell=lambda x: euclidean_distance_points(x['latitude'], x['longitude'], x['celllat'],
-                                                               x['celllong']))
+            drives_dict[key].at[i, 'dist2cell'] = haversine(row['longitude'], row['latitude'], row['celllong'],
+                                                            row['celllat'])
+        # drives_dict[key] = drives_dict[key].assign(
+        #     dist2cell=lambda x: euclidean_distance_points(x['latitude'], x['longitude'], x['celllat'],
+        #                                                        x['celllong']))
         rsrp_dict[key] = drives_dict[key][drives_dict[key]['celllong']>0][['rsrp','dist2cell']]
         rsrp_dict[key].plot(x="dist2cell", y=["rsrp"], kind="line", figsize=(10, 10))
         # cell_calculation.calculate_switchover(drives_dict[key])  # Calculate switch over per drive per imei

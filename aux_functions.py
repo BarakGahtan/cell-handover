@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from math import radians, cos, sin, asin, sqrt
+from numpy import sin, cos, arccos, pi, round
 
 
 def read_log(file_name):
@@ -35,11 +36,8 @@ def haversine(lon1, lat1, lon2, lat2):
     a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
     c = 2 * asin(sqrt(a))
     # Radius of earth in kilometers is 6371
-    km = 6371 * c
-    return km
-
-
-from numpy import sin, cos, arccos, pi, round
+    meters = 6371 * c * 1000
+    return meters
 
 
 def rad2deg(radians):
@@ -62,4 +60,4 @@ def getDistanceBetweenPointsNew(latitude1, longitude1, latitude2, longitude2):
             (cos(deg2rad(latitude1)) * cos(deg2rad(latitude2)) * cos(deg2rad(theta)))
         )
     )
-    return round(distance * 1.609344, 2)*1000
+    return round(distance * 1.609344, 2) * 1000
