@@ -6,10 +6,10 @@ import numpy as np
 import pandas as pd
 import branca.colormap as cm
 import cell_calculation
-from aux_functions import euclidean_distance, euclidean_distance_points
+from aux_functions import euclidean_distance, euclidean_distance_points, haversine, getDistanceBetweenPointsNew
 from cell_calculation import get_unique_cells_in_drive
 from regression_model import build_regression_model
-
+import matplotlib.pyplot as mp
 # filter according to start of the drive. unique.
 NUM_DRIVES = 1
 DRIVE_NUM = 400
@@ -144,37 +144,35 @@ def visualize_drives(drives_by_imei_dictionary, cells_per_drive_per_modem_avg):
 
 
 def prepare_distance_to_cells(drives_dict, cells_location_dict):
-    x = 6
+    rsrp_dict = {}
     for key in drives_dict.keys():
         drives_dict[key].reset_index()
-        drives_dict[key]['cell_lat'] = drives_dict[key].apply(
-            lambda x: euclidean_distance_points(x['latitude'], x['longitude'],
-                                                cells_location_dict.get(x['globalcellid'], 0)[0],
-                                                cells_location_dict.get(x['globalcellid'], 0)[1]), axis=1)
-
-        relevant_cols = drives_dict[key][['latitude', 'longitude', 'globalcellid']]
-        relevant_cols = drives_dict[key][['latitude', 'longitude', 'globalcellid']]
-        result = [
-            euclidean_distance_points(row[0], row[1], cells_location_dict[row[2]][0], cells_location_dict[row[2]][1])
-            for row in drives_dict[key][['latitude', 'longitude', 'glocalcellid']].to_numpy()]
-
-        for index, row in drives_dict[key].iterrows():
-            print(row['c1'], row['c2'])
-        drives_dict[key]['distancetocell'] = [euclidean_distance_points(x) for x in drives_dict[key]['latitude']]
-        drives_dict[key].insert(18, "cell_long", 0, allow_duplicates=False)
-        drives_dict[key].insert(18, "cell_lat", 0, allow_duplicates=False)
-
-        drives_dict[key]['globacellid_shift'] = drives_dict[key]['globalcellid'].shift()
-        drives_dict[key]['globalcellid'] = drives_dict[key].apply(
-            lambda x: x['globacellid_shift'] if x['globalcellid'] == 0 else x['globalcellid'], axis=1)
-        cell_calculation.calculate_switchover(drives_dict[key])  # Calculate switch over per drive per imei
-    return drives_dict
+        drives_dict[key].insert(18, "celllat", 0, allow_duplicates=False)
+        drives_dict[key].insert(18, "celllong", 0, allow_duplicates=False)
+        count = 0
+        for i, row in drives_dict[key].iterrows():
+            cell_lat, cell_long = cells_location_dict.get(row['globalcellid'], (0, 0))
+            if cell_long == 0 and cell_lat == 0:
+                count = count + 1
+            drives_dict[key].at[i, 'celllat'] = cell_lat
+            drives_dict[key].at[i, 'celllong'] = cell_long
+        # drives_dict[key] = drives_dict[key].assign(
+        #     disttocell=lambda x: getDistanceBetweenPointsNew(x['latitude'],x['longitude'],  x['celllat'], x['celllong']))
+        drives_dict[key] = drives_dict[key].assign(
+            dist2cell=lambda x: euclidean_distance_points(x['latitude'], x['longitude'], x['celllat'],
+                                                               x['celllong']))
+        rsrp_dict[key] = drives_dict[key][drives_dict[key]['celllong']>0][['rsrp','dist2cell']]
+        rsrp_dict[key].plot(x="dist2cell", y=["rsrp"], kind="line", figsize=(10, 10))
+        # cell_calculation.calculate_switchover(drives_dict[key])  # Calculate switch over per drive per imei
+        mp.show()
+        x = 5
+    return drives_dict, rsrp_dict
 
 
 if __name__ == "__main__":
     drives_by_modem, returned_drives_by_imei_dict = init_dataset('pickle_rick.pkl', DRIVE_NUM)
     cells_per_drives_in_dataset, cells_dict = get_cells_per_drive_in_dataset(returned_drives_by_imei_dict)
     drives_by_imei_dict = prepare_switchover_col(returned_drives_by_imei_dict)
-    drives_by_imei_dict = prepare_distance_to_cells(drives_by_imei_dict, cells_dict)
-    # visualize_drives(returned_drives_by_imei_dict, cells_per_drives_in_dataset)
+    drives_by_imei_dict, rsrp_dictionary = prepare_distance_to_cells(drives_by_imei_dict, cells_dict)
+    visualize_drives(returned_drives_by_imei_dict, cells_per_drives_in_dataset)
     build_regression_model(drives_by_imei_dict)
