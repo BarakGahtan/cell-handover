@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import branca.colormap as cm
 import cell_calculation
-from aux_functions import euclidean_distance
+from aux_functions import euclidean_distance, euclidean_distance_points
 from cell_calculation import get_unique_cells_in_drive
 from regression_model import build_regression_model
 
@@ -44,7 +44,11 @@ def get_cells_per_drive_in_dataset(drives_by_imei_dictionary):
         cells_per_drive_per_modem_avg[key] = pd.concat(get_unique_cells_in_drive(drives_by_imei_dictionary[key]),
                                                        axis=0,
                                                        join='outer').dropna(axis=0)
-    return cells_per_drive_per_modem_avg
+    cells_dictionary = {}
+    for key in cells_per_drive_per_modem_avg.keys():
+        for index, row in cells_per_drive_per_modem_avg[key].iterrows():
+            cells_dictionary[row['cell']] = (row['lon'], row['lat'])
+    return cells_per_drive_per_modem_avg, cells_dictionary
 
 
 def prepare_switchover_col(drives_by_imei_dictionary):
@@ -139,9 +143,38 @@ def visualize_drives(drives_by_imei_dictionary, cells_per_drive_per_modem_avg):
         x = 5
 
 
+def prepare_distance_to_cells(drives_dict, cells_location_dict):
+    x = 6
+    for key in drives_dict.keys():
+        drives_dict[key].reset_index()
+        drives_dict[key]['cell_lat'] = drives_dict[key].apply(
+            lambda x: euclidean_distance_points(x['latitude'], x['longitude'],
+                                                cells_location_dict.get(x['globalcellid'], 0)[0],
+                                                cells_location_dict.get(x['globalcellid'], 0)[1]), axis=1)
+
+        relevant_cols = drives_dict[key][['latitude', 'longitude', 'globalcellid']]
+        relevant_cols = drives_dict[key][['latitude', 'longitude', 'globalcellid']]
+        result = [
+            euclidean_distance_points(row[0], row[1], cells_location_dict[row[2]][0], cells_location_dict[row[2]][1])
+            for row in drives_dict[key][['latitude', 'longitude', 'glocalcellid']].to_numpy()]
+
+        for index, row in drives_dict[key].iterrows():
+            print(row['c1'], row['c2'])
+        drives_dict[key]['distancetocell'] = [euclidean_distance_points(x) for x in drives_dict[key]['latitude']]
+        drives_dict[key].insert(18, "cell_long", 0, allow_duplicates=False)
+        drives_dict[key].insert(18, "cell_lat", 0, allow_duplicates=False)
+
+        drives_dict[key]['globacellid_shift'] = drives_dict[key]['globalcellid'].shift()
+        drives_dict[key]['globalcellid'] = drives_dict[key].apply(
+            lambda x: x['globacellid_shift'] if x['globalcellid'] == 0 else x['globalcellid'], axis=1)
+        cell_calculation.calculate_switchover(drives_dict[key])  # Calculate switch over per drive per imei
+    return drives_dict
+
+
 if __name__ == "__main__":
     drives_by_modem, returned_drives_by_imei_dict = init_dataset('pickle_rick.pkl', DRIVE_NUM)
-    cells_per_drives_in_dataset = get_cells_per_drive_in_dataset(returned_drives_by_imei_dict)
+    cells_per_drives_in_dataset, cells_dict = get_cells_per_drive_in_dataset(returned_drives_by_imei_dict)
     drives_by_imei_dict = prepare_switchover_col(returned_drives_by_imei_dict)
+    drives_by_imei_dict = prepare_distance_to_cells(drives_by_imei_dict, cells_dict)
     # visualize_drives(returned_drives_by_imei_dict, cells_per_drives_in_dataset)
     build_regression_model(drives_by_imei_dict)

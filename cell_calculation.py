@@ -16,7 +16,6 @@ def where_are_my_cells(cell_num):
 def get_unique_cells_in_drive(df):
     unique_cells_in_this_drive = df['globalcellid'].unique().astype(int) # unique cells from the data-frame
     cell_dfs_list = []
-    cell_name = ''
     for cell in unique_cells_in_this_drive:
         # if isinstance(cell, float):
         #     if cell == 0:
