@@ -1,3 +1,5 @@
+import struct
+
 import pandas as pd
 
 
@@ -13,20 +15,30 @@ def where_are_my_cells(cell_num):
     return result
 
 
+# Define a custom function to remove ".0" from floats
+def remove_zero(x):
+    if isinstance(x, float) and str(x).endswith(".0"):
+        return int(x)
+    return x
+
+
+def translate_hex(hex_num):
+    int_num = int(hex_num, 16)  # Convert hex number to int
+    int_num = int_num >> 8  # Remove lowest 2 digits
+    return int(str(int_num), 10)
+
+
+#caculate the effective cell by minimum distance to the cells.
 def get_unique_cells_in_drive(df):
-    unique_cells_in_this_drive = df['globalcellid'].unique().astype(int) # unique cells from the data-frame
+    df = df.applymap(remove_zero)
+    df[['globalcellid']] = df[['globalcellid']].astype(str)  # .astype(int) # unique cells from the data-frame
+    df.insert(18, "celldecimal", 0, allow_duplicates=False)
+    df['celldecimal'] = df.apply(lambda row: translate_hex(row['globalcellid']), axis=1)
+    unique_cells = pd.concat([df['globalcellid'], df['celldecimal']]).unique()
+    x = 5
     cell_dfs_list = []
-    for cell in unique_cells_in_this_drive:
-        # if isinstance(cell, float):
-        #     if cell == 0:
-        #         cell = '0'
-        #         cell_name = int('0')
-        #     else:
-        # cell = str(cell)
-        # cell_name = int('0x' + cell[:-2], 16)
-        # cell_name = int(cell[:-2], 16)
-        cell_name = cell
-        cells_locations = where_are_my_cells(cell_name)
+    for cell in unique_cells:
+        cells_locations = where_are_my_cells(cell)
         if cells_locations.empty:
             print('oops')
         cell_dfs_list.append(cells_locations)

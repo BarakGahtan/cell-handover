@@ -10,9 +10,13 @@ from aux_functions import euclidean_distance, euclidean_distance_points, haversi
 from cell_calculation import get_unique_cells_in_drive
 from regression_model import build_regression_model
 import matplotlib.pyplot as mp
+
 # filter according to start of the drive. unique.
 NUM_DRIVES = 1
-DRIVE_NUM = 400
+DRIVE_NUM = 550
+
+
+# 400
 
 
 def init_dataset(pickle_name, drive_num):
@@ -156,14 +160,15 @@ def prepare_distance_to_cells(drives_dict, cells_location_dict):
                 count = count + 1
             drives_dict[key].at[i, 'celllat'] = cell_lat
             drives_dict[key].at[i, 'celllong'] = cell_long
-        # drives_dict[key] = drives_dict[key].assign(
-        #     disttocell=lambda x: getDistanceBetweenPointsNew(x['latitude'],x['longitude'],  x['celllat'], x['celllong']))
-            drives_dict[key].at[i, 'dist2cell'] = haversine(row['longitude'], row['latitude'], row['celllong'],
-                                                            row['celllat'])
+        drives_dict[key] = drives_dict[key].assign(
+            disttocell=lambda x: euclidean_distance_points(x['latitude'], x['longitude'], x['celllat'],
+                                                           x['celllong']))
+        # drives_dict[key].at[i, 'dist2cell'] = haversine(row['longitude'], row['latitude'], row['celllong'],
+        #                                                 row['celllat'])
         # drives_dict[key] = drives_dict[key].assign(
         #     dist2cell=lambda x: euclidean_distance_points(x['latitude'], x['longitude'], x['celllat'],
         #                                                        x['celllong']))
-        rsrp_dict[key] = drives_dict[key][drives_dict[key]['celllong']>0][['rsrp','dist2cell']]
+        rsrp_dict[key] = drives_dict[key][drives_dict[key]['celllong'] > 0][['rsrp', 'dist2cell']]
         rsrp_dict[key].plot(x="dist2cell", y=["rsrp"], kind="line", figsize=(10, 10))
         # cell_calculation.calculate_switchover(drives_dict[key])  # Calculate switch over per drive per imei
         mp.show()
@@ -175,6 +180,6 @@ if __name__ == "__main__":
     drives_by_modem, returned_drives_by_imei_dict = init_dataset('pickle_rick.pkl', DRIVE_NUM)
     cells_per_drives_in_dataset, cells_dict = get_cells_per_drive_in_dataset(returned_drives_by_imei_dict)
     drives_by_imei_dict = prepare_switchover_col(returned_drives_by_imei_dict)
-    drives_by_imei_dict, rsrp_dictionary = prepare_distance_to_cells(drives_by_imei_dict, cells_dict)
+    # drives_by_imei_dict, rsrp_dictionary = prepare_distance_to_cells(drives_by_imei_dict, cells_dict)
     visualize_drives(returned_drives_by_imei_dict, cells_per_drives_in_dataset)
     build_regression_model(drives_by_imei_dict)
