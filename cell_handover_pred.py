@@ -1,3 +1,4 @@
+import copy
 import os
 from collections import defaultdict
 import folium as folium
@@ -10,7 +11,13 @@ from aux_functions import euclidean_distance, euclidean_distance_points, haversi
 from cell_calculation import get_unique_cells_in_drive
 from regression_model import build_regression_model
 import matplotlib.pyplot as mp
+from sklearn import preprocessing
+import seaborn as sns
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder
+import warnings
 
+warnings.filterwarnings("ignore")
 from visualization import prepare_distance_to_cells
 
 # filter according to start of the drive. unique.
@@ -35,7 +42,7 @@ def init_dataset(pickle_name, drive_num):
                 sort_drives_by_modem[i][j]['date'].iloc[0] + '_' + sort_drives_by_modem[i][j]['time'].iloc[
                     0] + '_' +
                 str(sort_drives_by_modem[i][j]['imei'].iloc[0]))
-            drives_by_imei_dictionary[key_for_dict] = sort_drives_by_modem[i][j]
+            drives_by_imei_dictionary[key_for_dict] = copy.copy(sort_drives_by_modem[i][j])
     return sort_drives_by_modem, drives_by_imei_dictionary
 
 
@@ -78,10 +85,38 @@ def prepare_switchover_col(drives_by_imei_dictionary):
     return drives_by_imei_dictionary
 
 
+def prepare_features(data_dict):
+    labels_dict = {}
+    for key in data_dict.keys():
+        data_dict[key].drop(
+            columns=['_id', 'date', 'time',
+                     'latency_quantile_95', 'band', 'changes', 'longitude_perimeter', 'latitude_perimeter',
+                     'client_id', 'modem_id', 'network_type', 'operator', 'index', 'latency_max', 'latency_median',
+                     'latency_min', 'positionPrecision', 'servingcellid', 'qp_quantile_90', 'qp_min', 'qp_median',
+                     'simIdentifier', 'source_name', 'end_state', 'distance_meters', 'norm_bw',
+                     'frame_latency_quantile_90', 'frame_latency_min', 'frame_latency_median'], inplace=True, axis=1)
+        normalized_cols = ['longitude', 'latitude', 'rsrp', 'rssi', 'rsrq', 'modem_bandwidth', 'latency_mean',
+                           'total_bitrate', 'frame_latency_mean', 'timestamp', 'qp_mean']
+        data_dict[key][normalized_cols] = (data_dict[key][normalized_cols] - data_dict[key][normalized_cols].min()) / (
+                data_dict[key][normalized_cols].max() - data_dict[key][normalized_cols].min())
+        data_cols = ['longitude', 'latitude', 'rsrp', 'rssi', 'rsrq', 'modem_bandwidth', 'latency_mean',
+                     'total_bitrate', 'frame_latency_mean', 'timestamp', 'globalcellid', 'celldecimal', 'loss_rate',
+                     'qp_mean', 'switchover_decimal', 'switchover_global']
+        labels_dict[key] = copy.copy(data_dict[key][data_cols])
+        data_dict[key] = copy.copy(data_dict[key][data_cols])
+        corr = data_dict[key].corr()
+        sns.heatmap(corr, fmt=".2f", linewidth=.2)
+        plt.rcParams["figure.figsize"] = (15, 15)
+        # plt.show(dpi=300)
+        plt.savefig("correlationmat.pdf", dpi=300)
+    return data_dict, labels_dict
+
+
 if __name__ == "__main__":
     drives_by_modem, returned_drives_by_imei_dict = init_dataset('pickle_rick.pkl', DRIVE_NUM)
     cells_per_drives_in_dataset, cells_dict = get_cells_per_drive_in_dataset(returned_drives_by_imei_dict)
     drives_by_imei_dict = prepare_switchover_col(returned_drives_by_imei_dict)
+    prepare_features(drives_by_imei_dict)
     x = 5
     # drives_by_imei_dict, rsrp_dictionary = prepare_distance_to_cells(drives_by_imei_dict, cells_dict)
     # visualize_drives(returned_drives_by_imei_dict, cells_per_drives_in_dataset)
