@@ -29,14 +29,14 @@ class cnn_extractor(nn.Module):
 
 
 class cnn_lstm_combined(nn.Module):
-    def __init__(self, model, n_features, n_hidden, seq_len, n_layers):
+    def __init__(self, model, number_features, n_hidden, seq_len, n_layers):
         super(cnn_lstm_combined, self).__init__()
         self.n_hidden = n_hidden
         self.seq_len = seq_len
         self.n_layers = n_layers
-        self.c1 = model()
+        self.c1 = model
         self.lstm = nn.LSTM(
-            input_size=n_features,
+            input_size=number_features,
             hidden_size=n_hidden,
             num_layers=n_layers
         )

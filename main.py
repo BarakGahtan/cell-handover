@@ -31,7 +31,7 @@ if __name__ == "__main__":
         data_set_concat_train, labels=0, SEQ_LEN=SEQ_LEN)
     # DATA IS TENSORS
     cnn_model = cnn_extractor(n_features=y_train_sample.shape[1])
-    combined_model = learning_model.cnn_lstm_combined(cnn_model, n_features=y_train_sample.shape[1],
+    combined_model = learning_model.cnn_lstm_combined(cnn_model, number_features=y_train_sample.shape[1],
                                                       n_hidden=3, seq_len=SEQ_LEN,
                                                       n_layers=3)  # seq_len - delta t window to look back.
     train_model(combined_model, X_train_seq, y_train_labels_sample, val_data=X_val_seq, val_labels=y_val_labels_sample)
