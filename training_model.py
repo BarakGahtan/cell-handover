@@ -7,8 +7,8 @@ def train(model, training_count, data_set_train, output):
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print('A {} device was detected.'.format(device))
 
-    x = torch.tensor(data_set_train.values, dtype=torch.float, device=device)
-    y = torch.tensor(output.values, dtype=torch.float, device=device)
+    x = torch.tensor(data_set_train, dtype=torch.float, device=device)
+    y = torch.tensor(output, dtype=torch.float, device=device)
     criterion = torch.nn.MSELoss()
     # Train our network with a simple SGD optimizer
     optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)

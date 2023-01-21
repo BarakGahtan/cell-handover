@@ -105,3 +105,14 @@ def normalize_correlate_features(data_dict):
         x = 5
         # plt.show(dpi=300)
     return data_dict
+
+
+def create_seq(data_dict, seq_length):
+    xs = []
+    ys = []
+    for i in range(len(data) - seq_length):
+        x = data.iloc[i:(i + seq_length)]
+        y = data.iloc[i + seq_length]
+        xs.append(x)
+        ys.append(y)
+    return np.array(xs), np.array(ys)
