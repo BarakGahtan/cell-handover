@@ -5,11 +5,11 @@ import pandas as pd
 from matplotlib import pyplot as plt
 
 import cell_calculation
-from main import DRIVE_NUM, NUM_DRIVES
+# from main import DRIVE_NUM, NUM_DRIVES
 import seaborn as sns
 
 
-def init_dataset(pickle_name, drive_num):
+def init_drives_dataset(pickle_name, DRIVE_NUM, NUM_DRIVES):
     big_df = pd.read_pickle(pickle_name)
     drives = [v for k, v in big_df.groupby(['date', 'time'])]
     # Now filter according to modem in each drive
