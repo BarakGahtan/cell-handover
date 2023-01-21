@@ -1,11 +1,8 @@
 import copy
-
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
-
 import cell_calculation
-# from main import DRIVE_NUM, NUM_DRIVES
 import seaborn as sns
 
 
@@ -110,9 +107,9 @@ def normalize_correlate_features(data_dict):
 def create_seq(data_dict, seq_length):
     xs = []
     ys = []
-    for i in range(len(data) - seq_length):
-        x = data.iloc[i:(i + seq_length)]
-        y = data.iloc[i + seq_length]
+    for i in range(len(data_dict) - seq_length):
+        x = data_dict.iloc[i:(i + seq_length)]
+        y = data_dict.iloc[i + seq_length]
         xs.append(x)
         ys.append(y)
     return np.array(xs), np.array(ys)

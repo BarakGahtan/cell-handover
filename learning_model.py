@@ -30,7 +30,7 @@ class cnn_extractor(nn.Module):
 
 class cnn_lstm_combined(nn.Module):
     def __init__(self, model, n_features, n_hidden, seq_len, n_layers):
-        super(cnn_lstm_model, self).__init__()
+        super(cnn_lstm_combined, self).__init__()
         self.n_hidden = n_hidden
         self.seq_len = seq_len
         self.n_layers = n_layers
@@ -57,7 +57,3 @@ class cnn_lstm_combined(nn.Module):
         last_time_step = lstm_out.view(self.seq_len - 1, len(sequences), self.n_hidden)[-1]
         y_pred = self.linear(last_time_step)
         return y_pred
-
-# define the model using pytorch
-
-
