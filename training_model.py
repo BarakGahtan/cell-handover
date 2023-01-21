@@ -30,32 +30,55 @@ def prepare_data_sets(data_frame, labels, SEQ_LEN):
     return X_train, y_train, X_val, y_val, X_test, y_test
 
 
-def train(model, training_count, data_set_train, output):
+def train_model(model, train_data, train_labels, val_data=None, val_labels=None, num_epochs=100, verbose=10,
+                patience=10):
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print('A {} device was detected.'.format(device))
+    loss_fn = torch.nn.L1Loss()  #
+    optimiser = torch.optim.Adam(model.parameters(), lr=0.001)
+    train_hist = []
+    val_hist = []
+    for t in range(num_epochs):
+        epoch_loss = 0
+        for idx, seq in enumerate(train_data):
+            model.reset_hidden_state()  # reset hidden state per seq
+            # train loss
+            seq = torch.unsqueeze(seq, 0)
+            y_pred = model(seq)
+            loss = loss_fn(y_pred[0].float(), train_labels[idx])  # loss about 1 step
 
-    x = torch.tensor(data_set_train, dtype=torch.float, device=device)
-    y = torch.tensor(output, dtype=torch.float, device=device)
-    criterion = torch.nn.MSELoss()
-    # Train our network with a simple SGD optimizer
-    optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
-    # Train our network a using the entire dataset 5 times
-    for epoch in range(training_count):
-        totalLoss = 0
-        for i in range(len(x)):
-            # Single Forward Pass
-            ypred = model(x[i])
-
-            # Measure how well the model predicted vs the actual value
-            loss = criterion(ypred, y[i])
-
-            # Track how well the model predicted (called loss)
-            totalLoss += loss.item()
-
-            # Update the neural network
-            optimizer.zero_grad()
+            # update weights
+            optimiser.zero_grad()
             loss.backward()
-            optimizer.step()
+            optimiser.step()
 
-        # Print out our loss after each training iteration
-        print("Total Loss: ", totalLoss)
+            epoch_loss += loss.item()
+
+        train_hist.append(epoch_loss / len(train_data))
+
+        if val_data is not None:
+            with torch.no_grad():
+                val_loss = 0
+                for val_idx, val_seq in enumerate(val_data):
+                    model.reset_hidden_state()  # reset hidden state per seq
+                    val_seq = torch.unsqueeze(val_seq, 0)
+                    y_val_pred = model(val_seq)
+                    val_step_loss = loss_fn(y_val_pred[0].float(), val_labels[val_idx])
+                    val_loss += val_step_loss
+            val_hist.append(val_loss / len(val_data))  # append in val hist
+
+            ## print loss every verbose
+            if t % verbose == 0:
+                print(f'Epoch {t} train loss: {epoch_loss / len(train_data)} val loss: {val_loss / len(val_data)}')
+
+            ## check early stopping every patience
+            if (t % patience == 0) & (t != 0):
+                ## early stop if loss is on
+                if val_hist[t - patience] < val_hist[t]:
+                    print('\n Early Stopping')
+                    break
+
+        elif t % verbose == 0:
+            print(f'Epoch {t} train loss: {epoch_loss / len(train_data)}')
+
+    return model, train_hist, val_hist
