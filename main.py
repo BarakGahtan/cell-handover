@@ -1,5 +1,7 @@
 import warnings
 import pandas as pd
+
+from learning_model import cnn_extractor
 from load_drives import init_drives_dataset, get_cells_per_drive_in_dataset, prepare_switchover_col, \
     normalize_correlate_features
 from regression_model import build_regression_model
@@ -20,10 +22,12 @@ if __name__ == "__main__":
     drives_by_imei_dict_train = prepare_switchover_col(returned_drives_by_imei_dict_train)
     correlated_data_dict_train = normalize_correlate_features(drives_by_imei_dict_train)
     data_set_concat_train = pd.concat(correlated_data_dict_train, axis=0).reset_index()
-    data_set_concat_train = data_set_concat_train.drop(["level_0", "level_1"], axis=1,
-                                                       inplace=True)  # should go into 1D-CNN MODEL
-    X_data_set_concat_train = data_set_concat_train.drop("switchover_global")  # data without switchover col
-    Y_data_set_concat_train = data_set_concat_train["switchover_global"]  # only the col we want to predict.
+    data_set_concat_train.drop(["level_0", "level_1"], axis=1, inplace=True)  # should go into 1D-CNN MODEL
+    X_data_set_concat_train = data_set_concat_train.drop(["switchover_global"],
+                                                         axis=1).values  # data without switchover col
+    Y_data_set_concat_train = data_set_concat_train[
+        "switchover_global"].transpose().values  # only the col we want to predict.
+    cnn_model = cnn_extractor(n_features=X_data_set_concat_train.shape[1])
 
     # SET TEST DATA
     # drives_by_modem_test, returned_drives_by_imei_dict_test = init_drives_dataset('pickle_rick.pkl', DRIVE_NUM_TEST,
