@@ -8,8 +8,8 @@ from load_drives import create_seq
 
 
 def make_Tensor(array):
-    return torch.Tensor(array).float()
-    # return torch.from_numpy(array).float()
+    # return torch.Tensor(array).float()
+    return torch.from_numpy(array).float()
 
 
 def prepare_data_sets(data_frame, labels, SEQ_LEN):

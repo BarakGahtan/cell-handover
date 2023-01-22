@@ -27,7 +27,8 @@ if __name__ == "__main__":
     data_set_concat_train.drop(["level_0", "level_1"], axis=1, inplace=True)  # should go into 1D-CNN MODEL
     X_train_seq, y_train_sample, X_val_seq, y_val_sample, X_test_seq, y_test_sample = prepare_data_sets(
         data_set_concat_train, labels=0, SEQ_LEN=SEQ_LEN)
-    X_train_labels_seq, y_train_labels_sample, X_val_labels_seq, y_val_labels_sample, X_test_labels_seq, y_test_labels_sample = prepare_data_sets(
+    X_train_labels_seq, y_train_labels_sample, X_val_labels_seq, y_val_labels_sample, X_test_labels_seq, \
+        y_test_labels_sample = prepare_data_sets(
         data_set_concat_train, labels=0, SEQ_LEN=SEQ_LEN)
     # DATA IS TENSORS
     cnn_model = cnn_extractor(n_features=y_train_sample.shape[1])
