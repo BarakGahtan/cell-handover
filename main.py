@@ -27,8 +27,8 @@ if __name__ == "__main__":
     data_set_concat_train.drop(["level_0", "level_1"], axis=1, inplace=True)  # should go into 1D-CNN MODEL
     X_train_seq, y_train_label, x_val_seq, y_val_label, x_test_seq, y_test_label = prepare_data_sets(data_set_concat_train, SEQ_LEN=SEQ_LEN)
     # DATA IS TENSORS
-    cnn_model = cnn_extractor(n_features=y_train_label.shape[1])
-    combined_model = learning_model.cnn_lstm_combined(cnn_model, number_features=y_train_label.shape[1],
+    cnn_model = cnn_extractor(n_features=X_train_seq.shape[2])
+    combined_model = learning_model.cnn_lstm_combined(cnn_model, number_features=X_train_seq.shape[2],
                                                       n_hidden=3, seq_len=SEQ_LEN,
                                                       n_layers=3)  # seq_len - delta t window to look back.
     train_model(combined_model, X_train_seq, y_train_label, val_data=x_val_seq, val_labels=y_val_label)

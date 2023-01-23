@@ -5,26 +5,25 @@ from torch.utils.data import Dataset, DataLoader
 import numpy as np
 import torch.nn.functional as F
 
-
 class cnn_extractor(nn.Module):
     def __init__(self, n_features=None):
         super().__init__()
+        # self.layer1 = nn.Conv1d(1, 64, kernel_size=3, stride=1)
         self.layer1 = nn.Sequential(
-            nn.Conv1d(n_features, 64, kernel_size=3, stride=1),
+            nn.Conv1d(1, 64, kernel_size=3, stride=1),
             nn.ReLU(),
-            nn.Dropout(0.5),
-            nn.MaxPool1d(10))
+            nn.MaxPool1d(3))
         self.layer2 = nn.Flatten()
         self.layer3 = nn.Sequential(
-            nn.Conv1d(n_features, 64, kernel_size=3, stride=1),
+            nn.Conv1d(1, 64, kernel_size=3, stride=1),
             nn.ReLU(),
             nn.Dropout(0.5),
-            nn.MaxPool1d(10))
+            nn.MaxPool1d(3))
 
     def forward(self, x):
         out = self.layer1(x)
         out = self.layer2(out)
-        out = self.layer3(out)
+        out = self.layer3(out.unsqueeze(1))
         return out
 
 
@@ -36,7 +35,7 @@ class cnn_lstm_combined(nn.Module):
         self.n_layers = n_layers
         self.c1 = model
         self.lstm = nn.LSTM(
-            input_size=number_features,
+            input_size=64*63,
             hidden_size=n_hidden,
             num_layers=n_layers
         )
@@ -49,7 +48,8 @@ class cnn_lstm_combined(nn.Module):
         )
 
     def forward(self, sequences):
-        sequences = self.c1(sequences.view(len(sequences), 1, -1))
+        # sequences = self.c1(sequences.view(len(sequences), 1, -1))
+        sequences = self.c1(sequences)
         lstm_out, self.hidden = self.lstm(
             sequences.view(len(sequences), self.seq_len - 1, -1),
             self.hidden
