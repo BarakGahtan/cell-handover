@@ -14,7 +14,7 @@ warnings.filterwarnings("ignore")
 NUM_DRIVES = 1
 DRIVE_NUM_TRAIN = 400
 DRIVE_NUM_TEST = 500
-SEQ_LEN = 10
+SEQ_LEN = 5
 
 if __name__ == "__main__":
     drives_by_modem_train, returned_drives_by_imei_dict_train = init_drives_dataset('pickle_rick.pkl', DRIVE_NUM_TRAIN,
@@ -25,17 +25,13 @@ if __name__ == "__main__":
     correlated_data_dict_train = normalize_correlate_features(drives_by_imei_dict_train)
     data_set_concat_train = pd.concat(correlated_data_dict_train, axis=0).reset_index()
     data_set_concat_train.drop(["level_0", "level_1"], axis=1, inplace=True)  # should go into 1D-CNN MODEL
-    X_train_seq, y_train_sample, X_val_seq, y_val_sample, X_test_seq, y_test_sample = prepare_data_sets(
-        data_set_concat_train, labels=0, SEQ_LEN=SEQ_LEN)
-    X_train_labels_seq, y_train_labels_sample, X_val_labels_seq, y_val_labels_sample, X_test_labels_seq, \
-        y_test_labels_sample = prepare_data_sets(
-        data_set_concat_train, labels=0, SEQ_LEN=SEQ_LEN)
+    X_train_seq, y_train_label, x_val_seq, y_val_label, x_test_seq, y_test_label = prepare_data_sets(data_set_concat_train, SEQ_LEN=SEQ_LEN)
     # DATA IS TENSORS
-    cnn_model = cnn_extractor(n_features=y_train_sample.shape[1])
-    combined_model = learning_model.cnn_lstm_combined(cnn_model, number_features=y_train_sample.shape[1],
+    cnn_model = cnn_extractor(n_features=y_train_label.shape[1])
+    combined_model = learning_model.cnn_lstm_combined(cnn_model, number_features=y_train_label.shape[1],
                                                       n_hidden=3, seq_len=SEQ_LEN,
                                                       n_layers=3)  # seq_len - delta t window to look back.
-    train_model(combined_model, X_train_seq, y_train_labels_sample, val_data=X_val_seq, val_labels=y_val_labels_sample)
+    train_model(combined_model, X_train_seq, y_train_label, val_data=x_val_seq, val_labels=y_val_label)
 
     # SET TEST DATA
     # drives_by_modem_test, returned_drives_by_imei_dict_test = init_drives_dataset('pickle_rick.pkl', DRIVE_NUM_TEST,

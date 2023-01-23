@@ -12,23 +12,19 @@ def make_Tensor(array):
     return torch.from_numpy(array).float()
 
 
-def prepare_data_sets(data_frame, labels, SEQ_LEN):
-    if labels == 0:  # data without switchover col
-        seq, no_seq = create_seq(data_frame.drop(["switchover_global"], axis=1), SEQ_LEN)
-    else:  # only the col we want to predict.
-        seq, no_seq = create_seq(data_frame["switchover_global"], SEQ_LEN)
-
+def prepare_data_sets(data_frame,  SEQ_LEN):
+    seq, seq_label = create_seq(data_frame, SEQ_LEN)
     data_set_size = seq.shape[0]
     train_size = int(data_set_size * 0.8)
     test_size = int(int(data_set_size - train_size) / 2)
-    X_train, y_train = copy.copy(seq[:train_size]), copy.copy(no_seq[:train_size])
+    x_train, y_train = copy.copy(seq[:train_size]), copy.copy(seq_label[:train_size])
     X_val, y_val = copy.copy(seq[train_size:train_size + test_size]), copy.copy(
-        no_seq[train_size:train_size + test_size])
+        seq_label[train_size:train_size + test_size])
     X_test, y_test = copy.copy(seq[train_size + test_size:]), copy.copy(
-        no_seq[train_size + test_size:])
-    # return make_Tensor(X_train), make_Tensor(y_train), make_Tensor(X_val), make_Tensor(y_val), make_Tensor(X_test), \
-    #        make_Tensor(y_test)
-    return X_train, y_train, X_val, y_val, X_test, y_test
+        seq_label[train_size + test_size:])
+    return make_Tensor(x_train), make_Tensor(y_train), make_Tensor(X_val), make_Tensor(y_val), make_Tensor(X_test), \
+        make_Tensor(y_test)
+    # return x_train, y_train, X_val, y_val, X_test, y_test
 
 
 def train_model(model, train_data, train_labels, val_data=None, val_labels=None, num_epochs=100, verbose=10,

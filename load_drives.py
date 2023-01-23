@@ -108,8 +108,9 @@ def create_seq(data_dict, seq_length):
     xs = []
     ys = []
     for i in range(len(data_dict) - seq_length):
-        x = data_dict.iloc[i:(i + seq_length)]
-        y = data_dict.iloc[i + seq_length]
+        x = data_dict.drop(["switchover_global"], axis=1).iloc[i:(i + seq_length)]
+        y = data_dict["switchover_global"].iloc[i + seq_length]
         xs.append(x)
         ys.append(y)
     return np.array(xs), np.array(ys)
+
