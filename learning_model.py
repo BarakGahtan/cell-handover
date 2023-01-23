@@ -12,13 +12,12 @@ class cnn_extractor(nn.Module):
         self.layer1 = nn.Sequential(
             nn.Conv1d(1, 64, kernel_size=3, stride=1),
             nn.ReLU(),
-            nn.MaxPool1d(3))
+            nn.MaxPool1d(5))
         self.layer2 = nn.Flatten()
         self.layer3 = nn.Sequential(
             nn.Conv1d(1, 64, kernel_size=3, stride=1),
             nn.ReLU(),
-            nn.Dropout(0.5),
-            nn.MaxPool1d(3))
+            nn.Dropout(0.5))
 
     def forward(self, x):
         out = self.layer1(x)
@@ -35,9 +34,9 @@ class cnn_lstm_combined(nn.Module):
         self.n_layers = n_layers
         self.c1 = model
         self.lstm = nn.LSTM(
-            input_size=64*63,
+            input_size=number_features,
             hidden_size=n_hidden,
-            num_layers=n_layers
+            num_layers=n_layers,batch_first=True
         )
         self.linear = nn.Linear(in_features=n_hidden, out_features=1)
 
