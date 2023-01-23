@@ -24,6 +24,8 @@ def prepare_data_sets(data_frame,  SEQ_LEN):
         seq_label[train_size + test_size:])
     return make_Tensor(x_train), make_Tensor(y_train), make_Tensor(X_val), make_Tensor(y_val), make_Tensor(X_test), \
         make_Tensor(y_test)
+    # return make_Tensor(x_train), make_Tensor(y_train), make_Tensor(X_val), make_Tensor(y_val), make_Tensor(X_test), \
+    #     make_Tensor(y_test)
     # return x_train, y_train, X_val, y_val, X_test, y_test
 
 
@@ -31,7 +33,7 @@ def train_model(model, train_data, train_labels, val_data=None, val_labels=None,
                 patience=10):
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print('A {} device was detected.'.format(device))
-    loss_fn = torch.nn.L1Loss()  #
+    loss_fn = torch.nn.BCEWithLogitsLoss()  #
     optimiser = torch.optim.Adam(model.parameters(), lr=0.001)
     train_hist = []
     val_hist = []
@@ -42,7 +44,7 @@ def train_model(model, train_data, train_labels, val_data=None, val_labels=None,
             # train loss
             seq = torch.unsqueeze(seq, 1)
             y_pred = model(seq)
-            loss = loss_fn(y_pred[0].float(), train_labels[idx])  # loss about 1 step
+            loss = loss_fn(y_pred[0].float(), train_labels[idx].unsqueeze(0))  # loss about 1 step
 
             # update weights
             optimiser.zero_grad()
@@ -58,9 +60,9 @@ def train_model(model, train_data, train_labels, val_data=None, val_labels=None,
                 val_loss = 0
                 for val_idx, val_seq in enumerate(val_data):
                     model.reset_hidden_state()  # reset hidden state per seq
-                    val_seq = torch.unsqueeze(val_seq, 0)
+                    val_seq = torch.unsqueeze(val_seq, 1)
                     y_val_pred = model(val_seq)
-                    val_step_loss = loss_fn(y_val_pred[0].float(), val_labels[val_idx])
+                    val_step_loss = loss_fn(y_val_pred[0].float(), val_labels[val_idx].unsqueeze(0))
                     val_loss += val_step_loss
             val_hist.append(val_loss / len(val_data))  # append in val hist
 
