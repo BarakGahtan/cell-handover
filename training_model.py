@@ -12,7 +12,7 @@ def make_Tensor(array):
     return torch.from_numpy(array).float()
 
 
-def prepare_data_sets(data_frame,  SEQ_LEN):
+def prepare_data_sets(data_frame, SEQ_LEN):
     seq, seq_label = create_seq(data_frame, SEQ_LEN)
     data_set_size = seq.shape[0]
     train_size = int(data_set_size * 0.8)

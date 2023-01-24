@@ -94,7 +94,6 @@ def normalize_correlate_features(data_dict):
         # selected_columns = data_dict[key].columns[selected_columns]
         # data_dict[key] = copy.copy(data_dict[key][selected_columns])
 
-
         # sns.heatmap(corr, fmt=".2f", linewidth=.2)
         # plt.title("Communication Test Drive Features")
         # plt.rcParams["figure.figsize"] = (30, 30)
@@ -115,4 +114,3 @@ def create_seq(data_dict, seq_length):
         xs.append(x)
         ys.append(y)
     return np.array(xs), np.array(ys)
-
