@@ -20,7 +20,7 @@ class cnn_extractor(nn.Module):
         self.layer3 = nn.Sequential(
             nn.Conv1d(64, 64, kernel_size=1, stride=1),
             nn.ReLU(),
-            nn.Dropout(0.5),
+            nn.Dropout(0.3),
             # nn.MaxPool1d(5)
         )
 
@@ -44,23 +44,20 @@ class cnn_lstm_combined(nn.Module):
             hidden_size=n_hidden,
             num_layers=n_layers,
         )
-        self.linear = nn.Linear(in_features=n_hidden * seq_len, out_features=1)
+        self.linear = nn.Linear(in_features=n_hidden, out_features=1)
 
     def reset_hidden_state(self):
         self.hidden = (
-            torch.zeros(self.n_layers, self.seq_len, self.n_hidden),
-            torch.zeros(self.n_layers, self.seq_len, self.n_hidden)
+            torch.zeros(self.n_layers, 1, self.n_hidden),
+            torch.zeros(self.n_layers, 1, self.n_hidden)
         )
+        # moved the middle index to be 1 instead of seq length.
 
     def forward(self, sequences):
-        # sequences = self.c1(sequences.view(len(sequences), 1, -1))
         sequences = self.c1(sequences)
-        # .view(len(sequences), self.seq_len - 1, -1)
-        lstm_out, self.hidden = self.lstm(sequences.unsqueeze(0).flatten(-2),
-                                          self.hidden)  # making it into (1-batch,seq-time, features)
-        # lstm_out.view(self.seq_len , len(sequences), self.n_hidden)[-1]
+        lstm_out, self.hidden = self.lstm(sequences.unsqueeze(0).flatten(-2), self.hidden)  # making it into (1-batch, seq-time, features)
         last_time_step = lstm_out.flatten(-2)  # take all of the output cells
-        y_pred = self.linear(last_time_step)  # there should be no activation in that layer because we use cross entropy
+        y_pred = self.linear(last_time_step)  # there should be no activation in that layer because we use bncross entropy
         return y_pred
 
 

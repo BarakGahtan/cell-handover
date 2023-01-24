@@ -30,11 +30,11 @@ if __name__ == "__main__":
     # DATA IS TENSORS
     cnn_model = cnn_extractor(seq_len=SEQ_LEN, number_of_features=X_train_seq.shape[2])   # number features is the seqeunce len * max pooling of Conv1D
     combined_model = learning_model.cnn_lstm_combined(cnn_model, number_features=NN_SIZE,
-                                                      n_hidden=3, seq_len=SEQ_LEN,
-                                                      n_layers=3)  # seq_len - delta t window to look back.
+                                                      n_hidden=2, seq_len=SEQ_LEN,
+                                                      n_layers=2)  # seq_len - delta t window to look back.
     model, train_hist, val_hist = train_model(combined_model, X_train_seq, y_train_label, val_data=x_val_seq, val_labels=y_val_label)
     learning_model.plot_train(train_hist, val_hist)
-    learning_model.test_model(x_test_seq, y_test_label, model)
+    # learning_model.test_model(x_test_seq, y_test_label, model)
 
     # SET TEST DATA
     # drives_by_modem_test, returned_drives_by_imei_dict_test = init_drives_dataset('pickle_rick.pkl', DRIVE_NUM_TEST,
