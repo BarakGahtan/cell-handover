@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from matplotlib import pyplot as plt
 from torch.utils.data import Dataset, DataLoader
 import numpy as np
 import torch.nn.functional as F
@@ -58,3 +59,23 @@ class cnn_lstm_combined(nn.Module):
         last_time_step = lstm_out.flatten(-2)  # take all of the output cells
         y_pred = self.linear(last_time_step)  # there should be no activation in that layer because we use cross entropy
         return y_pred
+
+
+def plot_train(train_hist, val_hist):
+    plt.plot(train_hist, label="Training loss")
+    plt.plot(val_hist, label="Val loss")
+    plt.legend()
+
+
+def test_model(x_test_seq, y_test_label, model):
+    pred_dataset = x_test_seq
+    with torch.no_grad():
+        preds = []
+        for _ in range(len(pred_dataset)):
+            model.reset_hidden_state()
+            y_test_pred = model(torch.unsqueeze(pred_dataset[_], 0))
+            pred = torch.flatten(y_test_pred).item()
+            preds.append(pred)
+    plt.plot(np.array(y_test_label), label='True')
+    plt.plot(np.array(preds), label='Pred')
+    plt.legend()

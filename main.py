@@ -1,5 +1,6 @@
 import warnings
 import pandas as pd
+from matplotlib import pyplot as plt
 
 import learning_model
 from learning_model import cnn_extractor
@@ -11,8 +12,8 @@ from training_model import prepare_data_sets, make_Tensor, train_model
 warnings.filterwarnings("ignore")
 
 # filter according to start of the drive. unique.
-NUM_DRIVES = 1
-DRIVE_NUM_TRAIN = 400
+NUM_DRIVES = 15
+DRIVE_NUM_TRAIN = 300
 DRIVE_NUM_TEST = 500
 SEQ_LEN = 10
 
@@ -31,7 +32,9 @@ if __name__ == "__main__":
     combined_model = learning_model.cnn_lstm_combined(cnn_model, number_features=1600,
                                                       n_hidden=3, seq_len=SEQ_LEN,
                                                       n_layers=3)  # seq_len - delta t window to look back.
-    train_model(combined_model, X_train_seq, y_train_label, val_data=x_val_seq, val_labels=y_val_label)
+    model, train_hist, val_hist = train_model(combined_model, X_train_seq, y_train_label, val_data=x_val_seq, val_labels=y_val_label)
+    learning_model.plot_train(train_hist, val_hist)
+    learning_model.test_model(x_test_seq, y_test_label, model)
 
     # SET TEST DATA
     # drives_by_modem_test, returned_drives_by_imei_dict_test = init_drives_dataset('pickle_rick.pkl', DRIVE_NUM_TEST,
