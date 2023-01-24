@@ -1,21 +1,21 @@
 import warnings
+
 import pandas as pd
-from matplotlib import pyplot as plt
 
 import learning_model
 from learning_model import cnn_extractor
 from load_drives import init_drives_dataset, get_cells_per_drive_in_dataset, prepare_switchover_col, \
     normalize_correlate_features
-from regression_model import build_regression_model
-from training_model import prepare_data_sets, make_Tensor, train_model
+from training_model import prepare_data_sets, train_model
 
 warnings.filterwarnings("ignore")
 
 # filter according to start of the drive. unique.
-NUM_DRIVES = 15
-DRIVE_NUM_TRAIN = 300
+NUM_DRIVES = 1
+DRIVE_NUM_TRAIN = 400
 DRIVE_NUM_TEST = 500
-SEQ_LEN = 10
+SEQ_LEN = 5
+NN_SIZE = 64
 
 if __name__ == "__main__":
     drives_by_modem_train, returned_drives_by_imei_dict_train = init_drives_dataset('pickle_rick.pkl', DRIVE_NUM_TRAIN,
@@ -28,8 +28,8 @@ if __name__ == "__main__":
     data_set_concat_train.drop(["level_0", "level_1"], axis=1, inplace=True)  # should go into 1D-CNN MODEL
     X_train_seq, y_train_label, x_val_seq, y_val_label, x_test_seq, y_test_label = prepare_data_sets(data_set_concat_train, SEQ_LEN=SEQ_LEN)
     # DATA IS TENSORS
-    cnn_model = cnn_extractor()   #number features is the seqeunce len * max pooling of Conv1D
-    combined_model = learning_model.cnn_lstm_combined(cnn_model, number_features=1600,
+    cnn_model = cnn_extractor(seq_len=SEQ_LEN, number_of_features=X_train_seq.shape[2])   # number features is the seqeunce len * max pooling of Conv1D
+    combined_model = learning_model.cnn_lstm_combined(cnn_model, number_features=NN_SIZE,
                                                       n_hidden=3, seq_len=SEQ_LEN,
                                                       n_layers=3)  # seq_len - delta t window to look back.
     model, train_hist, val_hist = train_model(combined_model, X_train_seq, y_train_label, val_data=x_val_seq, val_labels=y_val_label)

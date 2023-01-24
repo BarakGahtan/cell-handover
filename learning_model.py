@@ -8,30 +8,33 @@ import torch.nn.functional as F
 
 
 class cnn_extractor(nn.Module):
-    def __init__(self, n_features=None):
+    def __init__(self, seq_len, number_of_features):
         super().__init__()
         # self.layer1 = nn.Conv1d(1, 64, kernel_size=3, stride=1)
         self.layer1 = nn.Sequential(
-            nn.Conv1d(1, 64, kernel_size=2, stride=1),
+            nn.Conv1d(number_of_features, 64, kernel_size=seq_len, stride=1),  # 14,5
             nn.ReLU(),
-            nn.MaxPool1d(5))
+            # nn.MaxPool1d(5)
+        )
         self.layer2 = nn.Flatten()
         self.layer3 = nn.Sequential(
-            nn.Conv1d(1, 64, kernel_size=2, stride=1),
+            nn.Conv1d(64, 64, kernel_size=1, stride=1),
             nn.ReLU(),
             nn.Dropout(0.5),
-            nn.MaxPool1d(5))
+            # nn.MaxPool1d(5)
+        )
 
     def forward(self, x):
         out = self.layer1(x)
         out = self.layer2(out)
-        out = self.layer3(out.unsqueeze(1))
+        out = self.layer3(out.unsqueeze(2))
         return out
 
 
 class cnn_lstm_combined(nn.Module):
     def __init__(self, model, number_features, n_hidden, seq_len, n_layers):
         super(cnn_lstm_combined, self).__init__()
+        self.hidden = None
         self.n_hidden = n_hidden
         self.seq_len = seq_len
         self.n_layers = n_layers

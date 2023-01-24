@@ -43,6 +43,7 @@ def train_model(model, train_data, train_labels, val_data=None, val_labels=None,
             model.reset_hidden_state()  # reset hidden state per seq
             # train loss
             seq = torch.unsqueeze(seq, 1)
+            seq = seq.permute(1, 2, 0)
             y_pred = model(seq)
             loss = loss_fn(y_pred[0].float(), train_labels[idx].unsqueeze(0))  # loss about 1 step
 

@@ -85,21 +85,23 @@ def normalize_correlate_features(data_dict):
         labels_dict[key] = copy.copy(data_dict[key][data_cols])
         data_dict[key] = copy.copy(data_dict[key][data_cols])
         corr = data_dict[key].corr()
-        selected_columns = np.full((corr.shape[0],), True, dtype=bool)
-        for i in range(corr.shape[0]):
-            for j in range(i + 1, corr.shape[0]):
-                if corr.iloc[i, j] >= 0.9:
-                    if selected_columns[j]:
-                        selected_columns[j] = False
-        selected_columns = data_dict[key].columns[selected_columns]
-        data_dict[key] = copy.copy(data_dict[key][selected_columns])
-        sns.heatmap(corr, fmt=".2f", linewidth=.2)
-        plt.title("Communication Test Drive Features")
-        plt.rcParams["figure.figsize"] = (30, 30)
-        # plt.xticks(fontsize=16)
-        plt.tight_layout()
+        # selected_columns = np.full((corr.shape[0],), True, dtype=bool)
+        # for i in range(corr.shape[0]):
+        #     for j in range(i + 1, corr.shape[0]):
+        #         if corr.iloc[i, j] >= 0.9:
+        #             if selected_columns[j]:
+        #                 selected_columns[j] = False
+        # selected_columns = data_dict[key].columns[selected_columns]
+        # data_dict[key] = copy.copy(data_dict[key][selected_columns])
+
+
+        # sns.heatmap(corr, fmt=".2f", linewidth=.2)
+        # plt.title("Communication Test Drive Features")
+        # plt.rcParams["figure.figsize"] = (30, 30)
+        # # plt.xticks(fontsize=16)
+        # plt.tight_layout()
         # plt.savefig("correlationmat.pdf", dpi=300)
-        x = 5
+        # x = 5
         # plt.show(dpi=300)
     return data_dict
 
