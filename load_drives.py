@@ -9,22 +9,21 @@ import seaborn as sns
 def init_drives_dataset(pickle_name, DRIVE_NUM, NUM_DRIVES):
     big_df = pd.read_pickle(pickle_name)
     drives = [v for k, v in big_df.groupby(['date', 'time'])]
-    # Now filter according to modem in each drive
-    sort_drives_by_modem = []
+    # Now filter according to imei in each drive
+    sorted_drives = []
     for i in range(len(drives)):
-        sort_drives_by_modem.append([v for k, v in drives[i].groupby('imei')])
-    # drive_by_modems is list of lists. each drive is a list of lists. the list inside is for diff modems.
+        sorted_drives.append([v for k, v in drives[i].groupby('imei')])
+    # drive_by_modems is list of lists. each drive is a list of lists. the list inside is for diff imeis.
 
     # each drive is broken into imei. There are 600 drives and at most 6 modems.
     drives_by_imei_dictionary = {}
     for i in range(DRIVE_NUM, DRIVE_NUM + NUM_DRIVES):  # len(drives_by_modem)
-        for j in range(len(sort_drives_by_modem[i])):  # len(drives_by_modem[i]) - number os modems in drive.
+        for j in range(len(sorted_drives[i])):  # len(drives_by_modem[i]) - number os modems in drive.
             key_for_dict = str(
-                sort_drives_by_modem[i][j]['date'].iloc[0] + '_' + sort_drives_by_modem[i][j]['time'].iloc[
-                    0] + '_' +
-                str(sort_drives_by_modem[i][j]['imei'].iloc[0]))
-            drives_by_imei_dictionary[key_for_dict] = copy.copy(sort_drives_by_modem[i][j])
-    return sort_drives_by_modem, drives_by_imei_dictionary
+                sorted_drives[i][j]['date'].iloc[0] + '_' + sorted_drives[i][j]['time'].iloc[0] + '_' +
+                str(sorted_drives[i][j]['imei'].iloc[0]))
+            drives_by_imei_dictionary[key_for_dict] = copy.copy(sorted_drives[i][j])
+    return sorted_drives, drives_by_imei_dictionary, drives
 
 
 # identifying the cells of each drive per modem. the key of the dict is when the drive started following by the
@@ -114,3 +113,21 @@ def create_seq(data_dict, seq_length):
         xs.append(x)
         ys.append(y)
     return np.array(xs), np.array(ys)
+
+
+def training_sets_init(given_dict):
+    keys = given_dict.keys()
+    special_character = "_"
+    keys_drives = set([s[:s.index(special_character, s.index(special_character) + 1)] for s in keys])
+    result_dict_by_so = {}
+    for key in keys_drives:
+        count_so, max_count = 0, 0
+        for k in given_dict.keys():
+            if k.startswith(key):
+                count_so = given_dict[k]['switchover_global'].eq(1).sum()
+                if count_so > max_count:
+                    result_dict_by_so[k] = copy.copy(given_dict[k])
+                    max_count = count_so
+                else:
+                    continue
+    return result_dict_by_so

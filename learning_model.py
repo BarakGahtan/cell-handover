@@ -67,6 +67,7 @@ def plot_train(train_hist, val_hist):
     plt.plot(train_hist, label="Training loss")
     plt.plot(val_hist, label="Val loss")
     plt.legend()
+    plt.show()
 
 
 def test_model(x_test_seq, y_test_label, model):
