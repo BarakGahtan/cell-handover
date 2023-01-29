@@ -11,9 +11,24 @@ def make_Tensor(array):
     # return torch.Tensor(array).float()
     return torch.from_numpy(array).float()
 
+def balance_data_set(seq, seq_label):
+    count_label_0, count_label_1 = 0,0
+    seq_copy = copy.copy(seq[:2])
+    seq_copy_label = copy.copy(seq_label[:2])
+    for i in range(len(seq)):
+        time_series = seq[i]
+        time_series_label = seq_label[i]
+        if time_series_label == 0:
+            count_label_0 = count_label_0 + 1
+        else:
+            count_label_1 = count_label_1 + 1
+
+    #
+    # return balanced_seq, balanced_seq_label
 
 def prepare_data_sets(data_frame, SEQ_LEN):
     seq, seq_label = create_seq(data_frame, SEQ_LEN)
+    seq, seq_label = balance_data_set(seq, seq_label)
     data_set_size = seq.shape[0]
     train_size = int(data_set_size * 0.8)
     test_size = int(int(data_set_size - train_size) / 2)

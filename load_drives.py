@@ -125,8 +125,8 @@ def training_sets_init(given_dict):
         for k in given_dict.keys():
             if k.startswith(key):
                 count_so = given_dict[k]['switchover_global'].eq(1).sum()
-                if count_so > max_count:
-                    result_dict_by_so[k] = copy.copy(given_dict[k])
+                if count_so >= max_count:
+                    result_dict_by_so[key] = copy.copy(given_dict[k])
                     max_count = count_so
                 else:
                     continue
