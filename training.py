@@ -1,8 +1,10 @@
 # Measure our neural network by mean square error
 import copy
+from datetime import datetime
 
 import numpy as np
 import torch
+from matplotlib import pyplot as plt
 from torch import optim
 
 from load_drives import create_seq
@@ -72,8 +74,7 @@ def prepare_data_sets(data_frame, SEQ_LEN, balanced):
     # return x_train, y_train, X_val, y_val, X_test, y_test
 
 
-def train_model(model, train_data, train_labels, val_data=None, val_labels=None, num_epochs=100, verbose=10,
-                patience=10):
+def train_model(model, train_data, train_labels, lstm_flag, val_data=None, val_labels=None, num_epochs=100, verbose=10,patience=10):
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print('A {} device was detected.'.format(device))
     loss_fn = torch.nn.BCEWithLogitsLoss()  #
@@ -83,10 +84,11 @@ def train_model(model, train_data, train_labels, val_data=None, val_labels=None,
     for t in range(num_epochs):
         epoch_loss = 0
         for idx, seq in enumerate(train_data):
-            model.reset_hidden_state()  # reset hidden state per seq
+            if lstm_flag:
+                model.reset_hidden_state()  # reset hidden state per seq
             # train loss
             seq = torch.unsqueeze(seq, 1)
-            seq = seq.permute(1, 2, 0)
+            # seq = seq.permute(1, 2, 0) # for cnn to be correctly working on all features concurrently.
             y_pred = model(seq)
             loss = loss_fn(y_pred[0].float(), train_labels[idx].unsqueeze(0))  # loss about 1 step
 
@@ -126,3 +128,81 @@ def train_model(model, train_data, train_labels, val_data=None, val_labels=None,
             print(f'Epoch {t} train loss: {epoch_loss / len(train_data)}')
 
     return model, train_hist, val_hist
+
+
+class Optimization:
+    def __init__(self, model, loss_fn, optimizer):
+        self.model = model
+        self.loss_fn = loss_fn
+        self.optimizer = optimizer
+        self.train_losses = []
+        self.val_losses = []
+
+    def train_step(self, x, y):
+        # Sets model to train mode
+        self.model.train()
+        # Makes predictions
+        yhat = self.model(x)
+        # Computes loss
+        loss = self.loss_fn(y, yhat)
+        # Computes gradients
+        loss.backward()
+        # Updates parameters and zeroes gradients
+        self.optimizer.step()
+        self.optimizer.zero_grad()
+        # Returns the loss
+        return loss.item()
+
+    def train(self, train_loader, val_loader, device, batch_size=64, n_epochs=50, n_features=1):
+        model_path = f'models/{self.model}_{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'
+        for epoch in range(1, n_epochs + 1):
+            batch_losses = []
+            for x_batch, y_batch in train_loader:
+                x_batch = x_batch.view([batch_size, -1, n_features]).to(device)
+                y_batch = y_batch.to(device)
+                loss = self.train_step(x_batch, y_batch)
+                batch_losses.append(loss)
+            training_loss = np.mean(batch_losses)
+            self.train_losses.append(training_loss)
+
+            with torch.no_grad():
+                batch_val_losses = []
+                for x_val, y_val in val_loader:
+                    x_val = x_val.view([batch_size, -1, n_features]).to(device)
+                    y_val = y_val.to(device)
+                    self.model.eval()
+                    yhat = self.model(x_val)
+                    val_loss = self.loss_fn(y_val, yhat).item()
+                    batch_val_losses.append(val_loss)
+                validation_loss = np.mean(batch_val_losses)
+                self.val_losses.append(validation_loss)
+
+            if (epoch <= 10) | (epoch % 50 == 0):
+                print(
+                    f"[{epoch}/{n_epochs}] Training loss: {training_loss:.4f}\t Validation loss: {validation_loss:.4f}"
+                )
+
+        torch.save(self.model.state_dict(), model_path)
+
+    def evaluate(self, test_loader, device,batch_size=1, n_features=1):
+        with torch.no_grad():
+            predictions = []
+            values = []
+            for x_test, y_test in test_loader:
+                x_test = x_test.view([batch_size, -1, n_features]).to(device)
+                y_test = y_test.to(device)
+                self.model.eval()
+                yhat = self.model(x_test)
+                predictions.append(yhat.to(device).detach().numpy())
+                values.append(y_test.to(device).detach().numpy())
+
+        return predictions, values
+
+    def plot_losses(self):
+        plt.plot(self.train_losses, label="Training loss")
+        plt.plot(self.val_losses, label="Validation loss")
+        plt.legend()
+        plt.title("Losses")
+        plt.show()
+        plt.close()
+
