@@ -5,16 +5,18 @@ from matplotlib import pyplot as plt
 from torch.utils.data import Dataset, DataLoader
 import numpy as np
 import torch.nn.functional as F
+from torch.nn import LogSoftmax
 
 
-class cnn_extractor(nn.Module):
+class cnn1d_model(nn.Module):
     def __init__(self, seq_len, number_of_features):
         super().__init__()
         # self.layer1 = nn.Conv1d(1, 64, kernel_size=3, stride=1)
+        self.logSoftmax = LogSoftmax(dim=1)
         self.layer1 = nn.Sequential(
             nn.Conv1d(number_of_features, 64, kernel_size=seq_len, stride=1),  # 14,5
             nn.ReLU(),
-            # nn.MaxPool1d(5)
+            nn.MaxPool1d(5)
         )
         self.layer2 = nn.Flatten()
         self.layer3 = nn.Sequential(
@@ -28,6 +30,7 @@ class cnn_extractor(nn.Module):
         out = self.layer1(x)
         out = self.layer2(out)
         out = self.layer3(out.unsqueeze(2))
+        out = self.logSoftmax(out)
         return out
 
 
