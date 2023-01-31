@@ -30,5 +30,7 @@ class Parser(object):
         parser_.add_argument('-balanced', '--bdataset', default=1, type=int, help='Generate balanced dataset or not')
         parser_.add_argument('-bs', '--batch_size', default=5, type=int, help='batch size')
         parser_.add_argument('-epoch', '--epoch_number', default=100, type=int, help='number of epochs')
+        parser_.add_argument('-lr', '--learn_rate', default=0.001, type=float, help='learning rate')
+        parser_.add_argument('-wd', '--weight_decay', default=0.000001, type=float, help='weight decay')
         args = parser_.parse_args()
         return args

@@ -60,16 +60,14 @@ class cnn_lstm_combined(nn.Module):
     def forward(self, sequences):
         if self.cnn_enable:
             sequences = self.c1(sequences)
-        lstm_out, self.hidden = self.lstm(sequences.unsqueeze(0).flatten(-2),self.hidden)  # making it into (1-batch, seq-time, features)
+        lstm_out, self.hidden = self.lstm(sequences.unsqueeze(0).flatten(-2), self.hidden)  # making it into (1-batch, seq-time, features)
         last_time_step = lstm_out.flatten(-2)  # take all of the output cells
-        y_pred = self.linear(
-            last_time_step)  # there should be no activation in that layer because we use bncross entropy
+        y_pred = self.linear(last_time_step)  # there should be no activation in that layer because we use bncross entropy
         return y_pred
 
 
-
 class TimeSeriesLSTMModel(nn.Module):
-    def __init__(self, input_dim, hidden_dim, layer_dim, output_dim, dropout_prob):
+    def __init__(self, input_dim, hidden_dim, layer_dim, output_dim, dropout_prob, device):
         super(TimeSeriesLSTMModel, self).__init__()
         # Defining the number of layers and the nodes in each layer
         self.hidden_dim = hidden_dim
@@ -78,13 +76,13 @@ class TimeSeriesLSTMModel(nn.Module):
         self.lstm = nn.LSTM(input_dim, hidden_dim, layer_dim, batch_first=True, dropout=dropout_prob)
         # Fully connected layer
         self.fc = nn.Linear(hidden_dim, output_dim)
-
+        self.device = device
     def forward(self, x):
         # Initializing hidden state for first input with zeros
-        h0 = torch.zeros(self.layer_dim, x.size(0), self.hidden_dim).requires_grad_()
+        h0 = torch.zeros(self.layer_dim, x.size(0), self.hidden_dim).requires_grad_().to(self.device)
 
         # Initializing cell state for first input with zeros
-        c0 = torch.zeros(self.layer_dim, x.size(0), self.hidden_dim).requires_grad_()
+        c0 = torch.zeros(self.layer_dim, x.size(0), self.hidden_dim).requires_grad_().to(self.device)
 
         # We need to detach as we are doing truncated backpropagation through time (BPTT)
         # If we don't, we'll backprop all the way to the start even after going through another batch
@@ -97,6 +95,7 @@ class TimeSeriesLSTMModel(nn.Module):
 
         # Convert the final state to our desired output shape (batch_size, output_dim)
         out = self.fc(out)
+        return out
 
 def plot_train(train_hist, val_hist):
     plt.plot(train_hist, label="Training loss")
