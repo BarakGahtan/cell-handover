@@ -110,6 +110,10 @@ def create_seq(data_dict, seq_length):
     for i in range(len(data_dict) - seq_length):
         x = data_dict.drop(["switchover_global"], axis=1).iloc[i:(i + seq_length)]
         y = data_dict["switchover_global"].iloc[i + seq_length]
+        x.dropna(inplace=True)
+        # y.dropna(inplace=True)
+        if len(x) != seq_length:
+            continue
         xs.append(x)
         ys.append(y)
     return np.array(xs), np.array(ys)
@@ -127,6 +131,7 @@ def training_sets_init(given_dict):
                 count_so = given_dict[k]['switchover_global'].eq(1).sum()
                 if count_so >= max_count:
                     result_dict_by_so[key] = copy.copy(given_dict[k])
+                    # result_dict_by_so[key].dropna(inplace=True)
                     max_count = count_so
                 else:
                     continue

@@ -17,20 +17,20 @@ def make_Tensor(array):
 
 
 def balance_data_set(seq, seq_label):
-    count_label_0, count_label_1 = 0, 0
-    minority, majority = [], []
-    minority_label, majority_label = [], []
-    for i in range(len(seq)):
-        time_series = seq[i]
-        time_series_label = seq_label[i]
-        if time_series_label == 0:
-            count_label_0 = count_label_0 + 1
-            majority.append(seq[i])
-            majority_label.append(seq_label[i])
-        else:
-            count_label_1 = count_label_1 + 1
-            minority.append(seq[i])
-            minority_label.append(seq_label[i])
+    # count_label_0, count_label_1 = 0, 0
+    # minority, majority = [], []
+    # minority_label, majority_label = [], []
+    # for i in range(len(seq)):
+    #     time_series = seq[i]
+    #     time_series_label = seq_label[i]
+    #     if time_series_label == 0:
+    #         count_label_0 = count_label_0 + 1
+    #         majority.append(seq[i])
+    #         majority_label.append(seq_label[i])
+    #     else:
+    #         count_label_1 = count_label_1 + 1
+    #         minority.append(seq[i])
+    #         minority_label.append(seq_label[i])
     sm = SMOTE(sampling_strategy='minority', random_state=42)
     seq_data_reshaped_for_balancing = seq.reshape(seq.shape[0], -1)
     oversampled_seq, oversampled_labels = sm.fit_resample(seq_data_reshaped_for_balancing, seq_label)
@@ -144,7 +144,7 @@ class Optimization:
         # Makes predictions
         yhat = self.model(x)
         # Computes loss
-        loss = self.loss_fn(y, yhat)
+        loss = self.loss_fn(y, yhat.squeeze(1)) #should check if it is good the squeeze so it will be 32 vs 32
         # Computes gradients
         loss.backward()
         # Updates parameters and zeroes gradients
@@ -154,7 +154,7 @@ class Optimization:
         return loss.item()
 
     def train(self, train_loader, val_loader, device, batch_size=64, n_epochs=50, n_features=1):
-        model_path = f'models/{self.model}_{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'
+        model_path = f'./models/{self.model}_{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'
         for epoch in range(1, n_epochs + 1):
             batch_losses = []
             for x_batch, y_batch in train_loader:
@@ -172,17 +172,14 @@ class Optimization:
                     y_val = y_val.to(device)
                     self.model.eval()
                     yhat = self.model(x_val)
-                    val_loss = self.loss_fn(y_val, yhat).item()
+                    val_loss = self.loss_fn(y_val, yhat.squeeze(1)).item()
                     batch_val_losses.append(val_loss)
                 validation_loss = np.mean(batch_val_losses)
                 self.val_losses.append(validation_loss)
 
             if (epoch <= 10) | (epoch % 50 == 0):
-                print(
-                    f"[{epoch}/{n_epochs}] Training loss: {training_loss:.4f}\t Validation loss: {validation_loss:.4f}"
-                )
-
-        torch.save(self.model.state_dict(), model_path)
+                print(f"[{epoch}/{n_epochs}] Training loss: {training_loss:.4f}\t Validation loss: {validation_loss:.4f}")
+        # torch.save(self.model.state_dict(), model_path)
 
     def evaluate(self, test_loader, device,batch_size=1, n_features=1):
         with torch.no_grad():
@@ -204,5 +201,5 @@ class Optimization:
         plt.legend()
         plt.title("Losses")
         plt.show()
-        plt.close()
+        # plt.close()
 

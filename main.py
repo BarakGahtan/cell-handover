@@ -10,7 +10,7 @@ import architecture
 from architecture import cnn1d_model
 from load_drives import init_drives_dataset, get_cells_per_drive_in_dataset, prepare_switchover_col, \
     normalize_correlate_features, training_sets_init
-from training import prepare_data_sets, train_model, Optimization
+from training import prepare_data_sets, Optimization
 from torch.utils.data import TensorDataset, DataLoader
 
 warnings.filterwarnings("ignore")
@@ -33,6 +33,7 @@ def lets_train(train_loader, val_loader, test_loader, features_count, device):
 
     predictions, values = optimization_process.evaluate(test_loader, batch_size=1, n_features=features_count, device=device)
     return predictions, values
+
 
 if __name__ == "__main__":
     parsed_args = input_parser.Parser()
@@ -75,8 +76,6 @@ if __name__ == "__main__":
     features_count = X_train_seq.shape[2]
     predictions, values = lets_train(train_loader, val_loader, test_loader, features_count, device)
 
-
-
     # cnn_model = cnn1d_model(seq_len=SEQ_LEN, number_of_features=features_count)  # number features is the seqeunce len * max pooling of Conv1D
     # combined_model = architecture.cnn_lstm_combined(cnn_model, number_features=features_count,
     #                                                 n_hidden=NN_LAYERS, seq_len=SEQ_LEN,
@@ -84,7 +83,6 @@ if __name__ == "__main__":
     # # model, train_hist, val_hist = train_model(combined_model, X_train_seq, y_train_label, val_data=x_val_seq,
     #                                           val_labels=y_val_label, lstm_flag=LSTM_FLAG)
     # architecture.plot_train(train_hist, val_hist)
-
 
     # learning_model.test_model(x_test_seq, y_test_label, model)
 
