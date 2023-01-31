@@ -32,6 +32,7 @@ def lets_train(train_loader, val_loader, test_loader, features_count, device):
     optimization_process.plot_losses()
 
     predictions, values = optimization_process.evaluate(test_loader, batch_size=1, n_features=features_count, device=device)
+
     return predictions, values
 
 
@@ -75,6 +76,7 @@ if __name__ == "__main__":
     weight_decay = 1e-6
     features_count = X_train_seq.shape[2]
     predictions, values = lets_train(train_loader, val_loader, test_loader, features_count, device)
+
 
     # cnn_model = cnn1d_model(seq_len=SEQ_LEN, number_of_features=features_count)  # number features is the seqeunce len * max pooling of Conv1D
     # combined_model = architecture.cnn_lstm_combined(cnn_model, number_features=features_count,
