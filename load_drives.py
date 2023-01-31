@@ -75,7 +75,7 @@ def normalize_correlate_features(data_dict):
                      'simIdentifier', 'source_name', 'end_state', 'distance_meters', 'norm_bw',
                      'frame_latency_quantile_90', 'frame_latency_min', 'frame_latency_median'], inplace=True, axis=1)
         normalized_cols = ['longitude', 'latitude', 'rsrp', 'rssi', 'rsrq', 'modem_bandwidth', 'latency_mean',
-                           'total_bitrate', 'frame_latency_mean', 'timestamp', 'qp_mean']
+                           'total_bitrate', 'frame_latency_mean', 'qp_mean']
         data_dict[key][normalized_cols] = (data_dict[key][normalized_cols] - data_dict[key][normalized_cols].min()) / (
                 data_dict[key][normalized_cols].max() - data_dict[key][normalized_cols].min())
         data_cols = ['longitude', 'latitude', 'rsrp', 'rssi', 'rsrq', 'modem_bandwidth', 'latency_mean',
