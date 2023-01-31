@@ -48,7 +48,7 @@ class cnn_lstm_combined(nn.Module):
             hidden_size=n_hidden,
             num_layers=n_layers,
         )
-        self.linear = nn.Linear(in_features=n_hidden, out_features=1)
+        self.linear = nn.Linear(in_features=self.seq_len * n_hidden, out_features=1)
 
     def reset_hidden_state(self):
         self.hidden = (
@@ -60,7 +60,7 @@ class cnn_lstm_combined(nn.Module):
     def forward(self, sequences):
         # if self.cnn_enable:
         #     sequences = self.c1(sequences)
-        lstm_out, self.hidden = self.lstm(sequences.unsqueeze(0).flatten(-2), self.hidden)  # making it into (1-batch, seq-time, features)
+        lstm_out, self.hidden = self.lstm(sequences, self.hidden)  # making it into (1-batch, seq-time, features)
         last_time_step = lstm_out.flatten(-2)  # take all of the output cells
         y_pred = self.linear(last_time_step)  # there should be no activation in that layer because we use bncross entropy
         return y_pred
