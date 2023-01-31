@@ -3,6 +3,7 @@ import copy
 from datetime import datetime
 
 import numpy as np
+import pandas as pd
 import torch
 from matplotlib import pyplot as plt
 from torch import optim
@@ -203,3 +204,10 @@ class Optimization:
         plt.show()
         # plt.close()
 
+    def format_predictions(predictions, values, df_test, scaler):
+        vals = np.concatenate(values, axis=0).ravel()
+        preds = np.concatenate(predictions, axis=0).ravel()
+        df_result = pd.DataFrame(data={"value": vals, "prediction": preds}, index=df_test.head(len(vals)).index)
+        df_result = df_result.sort_index()
+        # df_result = inverse_transform(scaler, df_result, [["value", "prediction"]])
+        return df_result
