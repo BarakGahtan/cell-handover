@@ -35,14 +35,14 @@ class cnn1d_model(nn.Module):
 
 
 class cnn_lstm_combined(nn.Module):
-    def __init__(self, model, number_features, n_hidden, seq_len, n_layers, cnn_enable):
+    def __init__(self, number_features, n_hidden, seq_len, n_layers, cnn_enable):
         super(cnn_lstm_combined, self).__init__()
         self.cnn_enable = cnn_enable
         self.hidden = None
         self.n_hidden = n_hidden
         self.seq_len = seq_len
         self.n_layers = n_layers
-        self.c1 = model
+        # self.c1 = model
         self.lstm = nn.LSTM(
             input_size=number_features,
             hidden_size=n_hidden,
@@ -58,8 +58,8 @@ class cnn_lstm_combined(nn.Module):
         # moved the middle index to be 1 instead of seq length.
 
     def forward(self, sequences):
-        if self.cnn_enable:
-            sequences = self.c1(sequences)
+        # if self.cnn_enable:
+        #     sequences = self.c1(sequences)
         lstm_out, self.hidden = self.lstm(sequences.unsqueeze(0).flatten(-2), self.hidden)  # making it into (1-batch, seq-time, features)
         last_time_step = lstm_out.flatten(-2)  # take all of the output cells
         y_pred = self.linear(last_time_step)  # there should be no activation in that layer because we use bncross entropy
