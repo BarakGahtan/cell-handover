@@ -18,7 +18,7 @@ warnings.filterwarnings("ignore")
 
 # filter according to start of the drive. unique.
 
-def lets_train(train_loader, val_loader, test_loader, features_count, device):
+def lets_train(train_loader, val_loader, test_loader, features_count, device, balance, count_label_0, count_label_1):
     lstm_model = architecture.TimeSeriesLSTMModel(input_dim=features_count, hidden_dim=NN_SIZE,
                                                   layer_dim=NN_LAYERS, output_dim=1, dropout_prob=0.2, device=device)
     # lstm_model = architecture.cnn_lstm_combined(number_features=features_count,
@@ -26,12 +26,15 @@ def lets_train(train_loader, val_loader, test_loader, features_count, device):
     #                                                 n_layers=NN_LAYERS, cnn_enable=0)  # seq_len - delta t window to look back.
     if torch.cuda.is_available():
         lstm_model.cuda()
-
-    loss_fn = torch.nn.BCEWithLogitsLoss() #the sigmoid activation should be applied in both cases. While nn.BCEWithLogitsLoss will apply it internally for you
-    optimizer = optim.Adam(lstm_model.parameters(), lr=opts.learn_rate, weight_decay=opts.weight_decay)
+    if balance:
+        loss_fn = torch.nn.BCEWithLogitsLoss()  # the sigmoid activation should be applied in both cases. While nn.BCEWithLogitsLoss will apply it internally for you
+    else:
+        # loss_fn = torch.nn.CrossEntropyLoss()
+        loss_fn = torch.nn.BCELoss() #weight=torch.as_tensor(int(count_label_0 / count_label_1), dtype=torch.float)
+    optimizer = optim.Adam(lstm_model.parameters(),lr=0.00000000001)
 
     optimization_process = Optimization(model=lstm_model, loss_fn=loss_fn, optimizer=optimizer)
-    optimization_process.train(train_loader, val_loader, batch_size=batch_size, n_epochs=n_epochs, n_features=features_count, device=device)
+    optimization_process.train(train_loader, val_loader, batch_size=batch_size, n_epochs=100, n_features=features_count, device=device)
     optimization_process.plot_losses()
 
     predictions, values = optimization_process.evaluate(test_loader, batch_size=1, n_features=features_count, device=device)
@@ -51,6 +54,7 @@ if __name__ == "__main__":
     LSTM_FLAG = opts.lstm_enable
     BALANCED_FLAG = opts.bdataset
     CNN_FLAG = opts.cnn_enable
+    to_balance = False
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     drives_by_imei_train, returned_drives_by_imei_dict_train, list_of_drives = init_drives_dataset('pickle_rick.pkl', DRIVE_NUM_TRAIN, NUM_DRIVES)
     cells_per_drives_in_dataset_train, cells_dict_train = get_cells_per_drive_in_dataset(returned_drives_by_imei_dict_train)
@@ -60,8 +64,9 @@ if __name__ == "__main__":
     correlated_data_dict_train = normalize_correlate_features(training_data_by_so)
     data_set_concat_train = pd.concat(correlated_data_dict_train, axis=0).reset_index()
     data_set_concat_train.drop(["level_0", "level_1"], axis=1, inplace=True)  # should go into 1D-CNN MODEL
-    X_train_seq, y_train_label, x_val_seq, y_val_label, x_test_seq, y_test_label = prepare_data_sets(data_set_concat_train, SEQ_LEN=SEQ_LEN,
-                                                                                                     balanced=True)
+    X_train_seq, y_train_label, x_val_seq, y_val_label, x_test_seq, y_test_label, count_label_0, count_label_1 = prepare_data_sets(
+        data_set_concat_train, SEQ_LEN=SEQ_LEN,
+        balanced=to_balance)
     train_data_set = TensorDataset(X_train_seq, y_train_label)
     train_loader = DataLoader(train_data_set, batch_size=opts.batch_size, shuffle=False, drop_last=True)
     val_data_set = TensorDataset(x_val_seq, y_val_label)
@@ -75,11 +80,8 @@ if __name__ == "__main__":
     layer_dim = NN_LAYERS
     batch_size = opts.batch_size
     n_epochs = opts.epoch_number
-    learning_rate = 1e-3
-    weight_decay = 1e-6
     features_count = X_train_seq.shape[2]
-    predictions, values = lets_train(train_loader, val_loader, test_loader, features_count, device)
-
+    predictions, values = lets_train(train_loader, val_loader, test_loader, features_count, device, to_balance, count_label_0, count_label_1)
 
     # cnn_model = cnn1d_model(seq_len=SEQ_LEN, number_of_features=features_count)  # number features is the seqeunce len * max pooling of Conv1D
     # combined_model = architecture.cnn_lstm_combined(cnn_model, number_features=features_count,

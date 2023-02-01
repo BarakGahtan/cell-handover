@@ -110,11 +110,9 @@ def create_seq(data_dict, seq_length):
         x = data_dict.drop(["switchover_global"], axis=1).iloc[i:(i + seq_length)]
         y = data_dict["switchover_global"].iloc[i + seq_length]
         x.dropna(inplace=True)
-        # y.dropna(inplace=True)
-        if len(x) != seq_length:
-            continue
-        xs.append(x)
-        ys.append(y)
+        if len(x) == seq_length:
+            xs.append(x)
+            ys.append(y)
     return np.array(xs), np.array(ys)
 
 
