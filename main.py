@@ -63,7 +63,7 @@ if __name__ == "__main__":
     # correlated_data_dict_train = normalize_correlate_features(drives_by_imei_dict_train)
     correlated_data_dict_train = normalize_correlate_features(training_data_by_so)
     data_set_concat_train = pd.concat(correlated_data_dict_train, axis=0).reset_index()
-    data_set_concat_train.drop(["level_0", "level_1"], axis=1, inplace=True)  # should go into 1D-CNN MODEL
+    data_set_concat_train.drop(["level_0", "level_1"], axis=1, inplace=True)
     X_train_seq, y_train_label, x_val_seq, y_val_label, x_test_seq, y_test_label, count_label_0, count_label_1 = prepare_data_sets(
         data_set_concat_train, SEQ_LEN=SEQ_LEN,
         balanced=to_balance)
