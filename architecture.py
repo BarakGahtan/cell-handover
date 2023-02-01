@@ -25,11 +25,13 @@ class cnn1d_model(nn.Module):
             nn.Dropout(0.3),
             # nn.MaxPool1d(5)
         )
+        self.layer4 = nn.Linear(in_features=64, out_features=1)
 
     def forward(self, x):
         out = self.layer1(x)
         out = self.layer2(out)
         out = self.layer3(out.unsqueeze(2))
+        out = self.layer4(out) #TODO: check if it will work.
         # out = self.logSoftmax(out)
         return out
 
