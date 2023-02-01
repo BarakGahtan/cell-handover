@@ -74,20 +74,22 @@ class TimeSeriesLSTMModel(nn.Module):
         self.layer_dim = layer_dim
         # LSTM layers
         self.lstm = nn.LSTM(input_dim, hidden_dim, layer_dim, batch_first=True, dropout=dropout_prob)
-        # Fully connected layer
+        # Fully connected layer - Applies a linear transformation to the incoming data
         self.fc = nn.Linear(hidden_dim, output_dim)
         self.device = device
     def forward(self, x):
         # Initializing hidden state for first input with zeros
         h0 = torch.zeros(self.layer_dim, x.size(0), self.hidden_dim).requires_grad_().to(self.device)
-
+        #should be 2 since D=2, N=batch size, H_out=NN size
         # Initializing cell state for first input with zeros
         c0 = torch.zeros(self.layer_dim, x.size(0), self.hidden_dim).requires_grad_().to(self.device)
-
+        #should be 2 since D=2, N=batch size, H_cell = hidden size
         # We need to detach as we are doing truncated backpropagation through time (BPTT)
         # If we don't, we'll backprop all the way to the start even after going through another batch
         # Forward propagation by passing in the input, hidden state, and cell state into the model
         out, (hn, cn) = self.lstm(x, (h0.detach(), c0.detach()))
+        # should be 2 since D=2, N=batch size, H_out=NN size, h_n(D*num_layers, N,H_out) - containing the final hidden state for each element in the sequence.
+        #c_n = (D*num_layers, N,H_cell) -  containing the final cell state for each element in the sequence.
 
         # Reshaping the outputs in the shape of (batch_size, seq_length, hidden_size)
         # so that it can fit into the fully connected layer

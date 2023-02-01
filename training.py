@@ -144,8 +144,9 @@ class Optimization:
         self.model.train()
         # Makes predictions
         yhat = self.model(x)
-        # Computes loss
-        loss = self.loss_fn(y, yhat.squeeze(1)) #should check if it is good the squeeze so it will be 32 vs 32
+        # Computes loss - BCElogits - #the sigmoid activation should be applied in both cases. While nn.BCEWithLogitsLoss will apply it internally for you
+        loss = self.loss_fn(y, yhat.squeeze(1))  # should check if it is good the squeeze so it will be 32 vs 32
+
         # Computes gradients
         loss.backward()
         # Updates parameters and zeroes gradients
@@ -182,7 +183,7 @@ class Optimization:
                 print(f"[{epoch}/{n_epochs}] Training loss: {training_loss:.4f}\t Validation loss: {validation_loss:.4f}")
         # torch.save(self.model.state_dict(), model_path)
 
-    def evaluate(self, test_loader, device,batch_size=1, n_features=1):
+    def evaluate(self, test_loader, device, batch_size=1, n_features=1):
         with torch.no_grad():
             predictions = []
             values = []

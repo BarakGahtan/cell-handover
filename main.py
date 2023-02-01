@@ -19,15 +19,15 @@ warnings.filterwarnings("ignore")
 # filter according to start of the drive. unique.
 
 def lets_train(train_loader, val_loader, test_loader, features_count, device):
-    # lstm_model = architecture.TimeSeriesLSTMModel(input_dim=features_count, hidden_dim=NN_SIZE,
-    #                                               layer_dim=NN_LAYERS, output_dim=1, dropout_prob=0.2, device=device)
-    lstm_model = architecture.cnn_lstm_combined(number_features=features_count,
-                                                    n_hidden=NN_SIZE, seq_len=SEQ_LEN,
-                                                    n_layers=NN_LAYERS, cnn_enable=0)  # seq_len - delta t window to look back.
+    lstm_model = architecture.TimeSeriesLSTMModel(input_dim=features_count, hidden_dim=NN_SIZE,
+                                                  layer_dim=NN_LAYERS, output_dim=1, dropout_prob=0.2, device=device)
+    # lstm_model = architecture.cnn_lstm_combined(number_features=features_count,
+    #                                                 n_hidden=NN_SIZE, seq_len=SEQ_LEN,
+    #                                                 n_layers=NN_LAYERS, cnn_enable=0)  # seq_len - delta t window to look back.
     if torch.cuda.is_available():
         lstm_model.cuda()
 
-    loss_fn = torch.nn.BCEWithLogitsLoss()
+    loss_fn = torch.nn.BCEWithLogitsLoss() #the sigmoid activation should be applied in both cases. While nn.BCEWithLogitsLoss will apply it internally for you
     optimizer = optim.Adam(lstm_model.parameters(), lr=opts.learn_rate, weight_decay=opts.weight_decay)
 
     optimization_process = Optimization(model=lstm_model, loss_fn=loss_fn, optimizer=optimizer)
