@@ -73,12 +73,12 @@ def prepare_data_sets(data_frame, SEQ_LEN, balanced):
             seq_label[train_size:train_size + test_size])
         X_test, y_test = copy.copy(seq[train_size + test_size:]), copy.copy(
             seq_label[train_size + test_size:])
-    pickle.dump(x_train, open('x_train.pkl', "wb"))
-    pickle.dump(y_train, open('y_train.pkl', "wb"))
-    pickle.dump(X_val, open('X_val.pkl', "wb"))
-    pickle.dump(y_val, open('y_val.pkl', "wb"))
-    pickle.dump(X_test, open('X_test.pkl', "wb"))
-    pickle.dump(y_test, open('y_test.pkl', "wb"))
+    pickle.dump(x_train, open('x_train_balanced_64.pkl', "wb"))
+    pickle.dump(y_train, open('y_train_balanced_64.pkl', "wb"))
+    pickle.dump(X_val, open('X_val_balanced_64.pkl', "wb"))
+    pickle.dump(y_val, open('y_val_balanced_64.pkl', "wb"))
+    pickle.dump(X_test, open('X_test_balanced_64.pkl', "wb"))
+    pickle.dump(y_test, open('y_test_balanced_64.pkl', "wb"))
     return make_Tensor(x_train), make_Tensor(y_train), make_Tensor(X_val), make_Tensor(y_val), make_Tensor(X_test), \
         make_Tensor(y_test), count_label_0, count_label_1
     # return make_Tensor(x_train), make_Tensor(y_train), make_Tensor(X_val), make_Tensor(y_val), make_Tensor(X_test), \
@@ -88,15 +88,15 @@ def prepare_data_sets(data_frame, SEQ_LEN, balanced):
 
 def main_training_loop(epochs, training_loader, validation_loader, seq_len, number_of_features, hidden_size):
     net = architecture.cnn_predictor(seq_len, number_of_features, hidden_size)
-    criterion = torch.nn.CrossEntropyLoss()
-    optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
-    path = r"E:runs/"
-    for file_name in os.listdir(path):
-        # construct full file path
-        file = path + file_name
-        if os.path.isfile(file):
-            print('Deleting file:', file)
-            os.remove(file)
+    criterion = torch.nn.BCELoss()
+    optimizer = optim.Adam(net.parameters(), lr=0.0001)
+    # path = r"E:runs/"
+    # for file_name in os.listdir(path):
+    #     # construct full file path
+    #     file = path + file_name
+    #     if os.path.isfile(file):
+    #         print('Deleting file:', file)
+    #         os.remove(file)
     writer = SummaryWriter('runs/1')
     # To view, start TensorBoard on the command line with:
     #   tensorboard --logdir=runs
@@ -130,7 +130,7 @@ def main_training_loop(epochs, training_loader, validation_loader, seq_len, numb
                 avg_vloss = running_vloss / len(validation_loader)
 
                 # Log the running loss averaged per batch
-                writer.add_scalars('Training vs. Validation Loss',
+                writer.add_scalars('Training vs. Validation Loss - 64 sequence length - not balanced',
                                    {'Training': avg_loss, 'Validation': avg_vloss},
                                    epoch * len(training_loader) + i)
 

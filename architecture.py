@@ -12,11 +12,12 @@ class cnn_predictor(nn.Module):
     def __init__(self, seq_len, number_of_features, hidden_size):
         super().__init__()
         self.layer1 = nn.Sequential(
-            nn.Conv1d(number_of_features, hidden_size, kernel_size=seq_len, stride=1),  # 14,5
+            nn.Conv1d(in_channels=number_of_features, out_channels=hidden_size, kernel_size=4, stride=1),  # 14,5
             nn.ReLU(),
+            nn.MaxPool1d(4)
         )
         self.layer2 = nn.Flatten()
-        self.layer3 = nn.Linear(in_features=hidden_size, out_features=1)
+        self.layer3 = nn.Linear(in_features=64*15, out_features=1)
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
