@@ -12,18 +12,18 @@ class cnn_lstm_hybrid(nn.Module):
     def __init__(self, features):
         super(cnn_lstm_hybrid, self).__init__()
         self.conv1d_1 = nn.Conv1d(in_channels=features,
-                                  out_channels=16,
-                                  kernel_size=3,
-                                  stride=1,
-                                  padding=1)
-        self.conv1d_2 = nn.Conv1d(in_channels=16,
                                   out_channels=32,
                                   kernel_size=3,
                                   stride=1,
                                   padding=1)
+        self.conv1d_2 = nn.Conv1d(in_channels=32,
+                                  out_channels=64,
+                                  kernel_size=3,
+                                  stride=1,
+                                  padding=1)
 
-        self.lstm = nn.LSTM(input_size=32,
-                            hidden_size=50,
+        self.lstm = nn.LSTM(input_size=64,
+                            hidden_size=128,
                             num_layers=1,
                             bias=True,
                             bidirectional=False,
@@ -31,35 +31,35 @@ class cnn_lstm_hybrid(nn.Module):
 
         self.dropout = nn.Dropout(0.5)
 
-        self.dense1 = nn.Linear(50, 32)
-        self.dense2 = nn.Linear(32, 1)
-
+        self.dense1 = nn.Linear(128, 64)
+        self.dense2 = nn.Linear(64, 32)
+        self.dense3 = nn.Linear(32, 1)
+        self.sigmoid = nn.Sigmoid()
     def forward(self, x):
         # Raw x shape : (B, S, F) => (B, 64, 11)
 
-        # Shape : (B, F, S) => (B, 11, 64)
-        x = x.transpose(1, 2)
-        # Shape : (B, F, S) == (B, C, S) // C = channel => (B, 16, 64)
-        x = self.conv1d_1(x)
-        # Shape : (B, C, S) => (B, 32, 64)
-        x = self.conv1d_2(x)
-        # Shape : (B, S, C) == (B, S, F) => (B, 64, 32)
-        x = x.transpose(1, 2)
+        x = x.transpose(1, 2) # Shape : (B, F, S) => (B, 11, 64)
+
+        x = self.conv1d_1(x)  # Shape : (B, F, S) == (B, C, S) // C = channel => (B, 32, 64)
+
+        x = self.conv1d_2(x)  # Shape : (B, C, S) => (B, 64, 64)
+
+        x = x.transpose(1, 2) # Shape : (B, S, C) == (B, S, F) => (B, 64, 64)
 
         self.lstm.flatten_parameters()
-        # Shape : (B, S, H) // H = hidden_size => (B, 64, 50)
-        _, (hidden, _) = self.lstm(x)
-        # Shape : (B, H) // -1 means the last sequence => (B, 50)
-        x = hidden[-1]
 
-        # Shape : (B, H) => (B, 50)
-        x = self.dropout(x)
+        _, (hidden, _) = self.lstm(x) # Shape : (B, S, H) // H = hidden_size => (B, 64, 50)
 
-        # Shape : (B, 32)
-        x = self.dense1(x)
-        # Shape : (B, O) // O = output => (B, 1)
-        x = self.dense2(x)
-        return x
+        x = hidden[-1] # Shape : (B, H) // -1 means the last sequence => (B, 50)
+
+        x = self.dropout(x) # Shape : (B, H) => (B, 128)
+
+        x = self.dense1(x) # Shape : (B, 64)
+
+        x = self.dense2(x) # Shape : (B, 32)
+
+        x = self.dense3(x)  # Shape : (B, O) // O = output => (B, 1)
+        return self.sigmoid(x)
     # def __init__(self, seq_len, number_of_features, hidden_size):
     #     super().__init__()
     #     self.layer1 = nn.Sequential(

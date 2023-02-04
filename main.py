@@ -46,12 +46,12 @@ if __name__ == "__main__":
         X_train_seq, y_train_label, x_val_seq, y_val_label, x_test_seq, y_test_label = \
             prepare_data_sets(data_set_concat_train, SEQ_LEN=SEQ_LEN, balanced=to_balance)
     else:
-        X_train_seq = training.make_Tensor(np.array(pickle.load(open('x_train_balanced_64_1_imei.pkl', "rb"))))
-        y_train_label = training.make_Tensor(np.array(pickle.load(open('y_train_balanced_64_1_imei.pkl', "rb"))))
-        x_val_seq = training.make_Tensor(np.array(pickle.load(open('X_val_balanced_64_1_imei.pkl', "rb"))))
-        y_val_label = training.make_Tensor(np.array(pickle.load(open('y_val_balanced_64_1_imei.pkl', "rb"))))
-        x_test_seq = training.make_Tensor(np.array(pickle.load(open('X_test_balanced_64_1_imei.pkl', "rb"))))
-        y_test_label = training.make_Tensor(np.array(pickle.load(open('y_test_balanced_64_1_imei.pkl', "rb"))))
+        X_train_seq = training.make_Tensor(np.array(pickle.load(open('x_train_balanced_64_all_imei.pkl', "rb"))))
+        y_train_label = training.make_Tensor(np.array(pickle.load(open('y_train_balanced_64_all_imei.pkl', "rb"))))
+        x_val_seq = training.make_Tensor(np.array(pickle.load(open('X_val_balanced_64_all_imei.pkl', "rb"))))
+        y_val_label = training.make_Tensor(np.array(pickle.load(open('y_val_balanced_64_all_imei.pkl', "rb"))))
+        x_test_seq = training.make_Tensor(np.array(pickle.load(open('X_test_balanced_64_all_imei.pkl', "rb"))))
+        y_test_label = training.make_Tensor(np.array(pickle.load(open('y_test_balanced_64_all_imei.pkl', "rb"))))
 
     # seq = pickle.load(open('x_data_eli1.pkl', "rb"))
     # y_data = pickle.load(open('y_data_eli1.pkl', "rb"))

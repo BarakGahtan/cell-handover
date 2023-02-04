@@ -147,7 +147,7 @@ def training_sets_init(given_dict, max_switchover):
                     else:
                         result_dict[key] = copy.copy(given_dict[k])
 
-        highest_imei_key = max(result_dict, key=lambda x: len(result_dict[x]))
-        results_return_key = {highest_imei_key: copy.copy(result_dict[highest_imei_key])}
-        result_dict = results_return_key
+        # highest_imei_key = max(result_dict, key=lambda x: len(result_dict[x]))
+        # results_return_key = {highest_imei_key: copy.copy(result_dict[highest_imei_key])}
+        # result_dict = results_return_key
     return result_dict

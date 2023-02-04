@@ -53,6 +53,10 @@ def balance_data_set(seq, seq_label):
     # majority_label = majority_label.reshape(majority_label.shape[0],-1)
 
 
+def mape(y_true, y_pred):
+    return 100 * np.mean(np.abs((y_true - y_pred) / y_true))
+
+
 def prepare_data_sets(data_frame, SEQ_LEN, balanced):
     if balanced:
         so_idxs = data_frame.index[data_frame['switchover_global'] == 1].tolist()
@@ -61,7 +65,7 @@ def prepare_data_sets(data_frame, SEQ_LEN, balanced):
         random.shuffle(balanced_indexes)
         xs, ys = [], []
         for i in range(len(balanced_indexes)):
-            x = data_frame.iloc[balanced_indexes[i]-SEQ_LEN:balanced_indexes[i]].drop(["switchover_global"], axis=1)
+            x = data_frame.iloc[balanced_indexes[i] - SEQ_LEN:balanced_indexes[i]].drop(["switchover_global"], axis=1)
             y = data_frame["switchover_global"].iloc[balanced_indexes[i]]
             x.dropna(inplace=True)
             if len(x) == SEQ_LEN:
@@ -85,12 +89,12 @@ def prepare_data_sets(data_frame, SEQ_LEN, balanced):
             seq_label[train_size:train_size + test_size])
         X_test, y_test = copy.copy(seq[train_size + test_size:]), copy.copy(
             seq_label[train_size + test_size:])
-    pickle.dump(x_train, open('x_train_balanced_64_1_imei.pkl', "wb"))
-    pickle.dump(y_train, open('y_train_balanced_64_1_imei.pkl', "wb"))
-    pickle.dump(X_val, open('X_val_balanced_64_1_imei.pkl', "wb"))
-    pickle.dump(y_val, open('y_val_balanced_64_1_imei.pkl', "wb"))
-    pickle.dump(X_test, open('X_test_balanced_64_1_imei.pkl', "wb"))
-    pickle.dump(y_test, open('y_test_balanced_64_1_imei.pkl', "wb"))
+    pickle.dump(x_train, open('x_train_balanced_64_all_imei.pkl', "wb"))
+    pickle.dump(y_train, open('y_train_balanced_64_all_imei.pkl', "wb"))
+    pickle.dump(X_val, open('X_val_balanced_64_all_imei.pkl', "wb"))
+    pickle.dump(y_val, open('y_val_balanced_64_all_imei.pkl', "wb"))
+    pickle.dump(X_test, open('X_test_balanced_64_all_imei.pkl', "wb"))
+    pickle.dump(y_test, open('y_test_balanced_64_all_imei.pkl', "wb"))
     return make_Tensor(x_train), make_Tensor(y_train), make_Tensor(X_val), make_Tensor(y_val), make_Tensor(X_test), \
         make_Tensor(y_test)
     # return make_Tensor(x_train), make_Tensor(y_train), make_Tensor(X_val), make_Tensor(y_val), make_Tensor(X_test), \
@@ -103,41 +107,51 @@ def main_training_loop(epochs, training_loader, validation_loader, seq_len, numb
     criterion = torch.nn.BCELoss()
     optimizer = optim.Adam(net.parameters(), lr=0.0001)
     writer = SummaryWriter('runs/1')
+
     # To view, start TensorBoard on the command line with:
     #   tensorboard --logdir=runs
     # ...and open a browser tab to http://localhost:6006/
     for epoch in range(epochs):  # loop over the dataset multiple times
         running_loss = 0.0
         for i, data in enumerate(training_loader, 0):
-            # basic training loop
             inputs, labels = data
             optimizer.zero_grad()
             outputs = net(inputs)
             loss = criterion(outputs.squeeze(1), labels)
             loss.backward()
             optimizer.step()
-
             running_loss += loss.item()
-            if i % 100 == 99:
+            if i % 10 == 9:
                 print('Batch {}'.format(i + 1))
                 # Check against the validation set
-                running_vloss = 0.0
+                running_vloss, running_true_accuracy = 0.0, 0.0
+                MAPE_acc, MAE_acc = 0.0, 0.0
+                with torch.no_grad():
+                    net.train(False)  # Don't need to track gradients for validation
+                    for j, vdata in enumerate(validation_loader, 0):
+                        vinputs, vlabels = vdata
+                        voutputs = net(vinputs)
+                        vloss = criterion(voutputs.squeeze(1), vlabels)
+                        running_vloss += vloss.item()
+                        vector_1 = np.where(voutputs.numpy().squeeze(1) > 0.5, True, False)
+                        v_labels_tf = np.where(vlabels.numpy() > 0.9, True, False)
+                        mape_voutputs = np.where(voutputs.numpy().squeeze(1) > 0.5, 1, 0)
+                        mape_labels = np.where(vlabels.numpy() > 0.9, 1, 0)
+                        bit_xor = np.bitwise_not(np.bitwise_xor(vector_1, v_labels_tf))
+                        running_true_accuracy = running_true_accuracy + bit_xor.sum() / len(bit_xor)
+                        MAPE_acc = MAPE_acc + mape(mape_labels, mape_voutputs)
 
-                net.train(False)  # Don't need to track gradients for validation
-                for j, vdata in enumerate(validation_loader, 0):
-                    vinputs, vlabels = vdata
-                    voutputs = net(vinputs)
-                    vloss = criterion(voutputs.squeeze(1), vlabels)
-                    running_vloss += vloss.item()
                 net.train(True)  # Turn gradients back on for training
 
-                avg_loss = running_loss / 99
+                avg_loss = running_loss / 9
                 avg_vloss = running_vloss / len(validation_loader)
-
+                avg_accuracy_prediction = running_true_accuracy / len(validation_loader)
+                avg_MAPE = MAPE_acc / len(validation_loader)
                 # Log the running loss averaged per batch
-                writer.add_scalars('Training', {'Training': avg_loss}, epoch)
-                writer.add_scalars('Validation Loss', {'Validation': avg_vloss}, epoch)
-
+                writer.add_scalars('Training vs. Validation Loss', {'Training': avg_loss, 'Validation': avg_vloss}, epoch + 1)
+                writer.add_scalars('True accuracy', {'accuracy': avg_accuracy_prediction}, epoch + 1)
+                writer.add_scalars('MAPE accuracy', {'MAPE': avg_accuracy_prediction}, epoch + 1)
+                writer.flush()
                 running_loss = 0.0
     print('Finished Training')
 
