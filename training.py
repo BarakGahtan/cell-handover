@@ -54,7 +54,7 @@ def balance_data_set(seq, seq_label):
 
 
 def mape(y_true, y_pred):
-    return 100 * np.mean(np.abs((y_true - y_pred) / y_true))
+    return 100 * np.mean(np.abs(y_true - y_pred))
 
 
 def prepare_data_sets(data_frame, SEQ_LEN, balanced):
@@ -139,7 +139,8 @@ def main_training_loop(epochs, training_loader, validation_loader, seq_len, numb
                         mape_labels = np.where(vlabels.numpy() > 0.9, 1, 0)
                         bit_xor = np.bitwise_not(np.bitwise_xor(vector_1, v_labels_tf))
                         running_true_accuracy = running_true_accuracy + bit_xor.sum() / len(bit_xor)
-                        MAPE_acc = MAPE_acc + mape(mape_labels, mape_voutputs)
+                        mape_res = mape(mape_labels, mape_voutputs)
+                        MAPE_acc = MAPE_acc + mape_res
 
                 net.train(True)  # Turn gradients back on for training
 
@@ -150,7 +151,7 @@ def main_training_loop(epochs, training_loader, validation_loader, seq_len, numb
                 # Log the running loss averaged per batch
                 writer.add_scalars('Training vs. Validation Loss', {'Training': avg_loss, 'Validation': avg_vloss}, epoch + 1)
                 writer.add_scalars('True accuracy', {'accuracy': avg_accuracy_prediction}, epoch + 1)
-                writer.add_scalars('MAPE accuracy', {'MAPE': avg_accuracy_prediction}, epoch + 1)
+                writer.add_scalars('MAPE accuracy', {'MAPE': avg_MAPE}, epoch + 1)
                 writer.flush()
                 running_loss = 0.0
     print('Finished Training')
