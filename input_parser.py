@@ -32,6 +32,7 @@ class Parser(object):
         parser_.add_argument('-epoch', '--epoch_number', default=100, type=int, help='number of epochs')
         parser_.add_argument('-lr', '--learn_rate', default=0.000001, type=float, help='learning rate')
         parser_.add_argument('-wd', '--weight_decay', default=0.0000001, type=float, help='weight decay')
-        parser_.add_argument('-lff', '--load_from_files', default=1, type=int, help='if to preprocess or not the data')
+        parser_.add_argument('-lff', '--load_from_files', default=0, type=int, help='if to preprocess or not the data')
+        parser_.add_argument('-mso', '--max_switch_over', default=0, type=int, help='Generate data set with maximum switchover per drive')
         args = parser_.parse_args()
         return args

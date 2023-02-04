@@ -8,25 +8,80 @@ import torch.nn.functional as F
 from torch.nn import LogSoftmax
 
 
-class cnn_predictor(nn.Module):
-    def __init__(self, seq_len, number_of_features, hidden_size):
-        super().__init__()
-        self.layer1 = nn.Sequential(
-            nn.Conv1d(in_channels=number_of_features, out_channels=hidden_size, kernel_size=4, stride=1),  # 14,5
-            nn.ReLU(),
-            nn.MaxPool1d(4)
-        )
-        self.layer2 = nn.Flatten()
-        self.layer3 = nn.Linear(in_features=64*15, out_features=1)
-        self.sigmoid = nn.Sigmoid()
+class cnn_lstm_hybrid(nn.Module):
+    def __init__(self, features):
+        super(cnn_lstm_hybrid, self).__init__()
+        self.conv1d_1 = nn.Conv1d(in_channels=features,
+                                  out_channels=16,
+                                  kernel_size=3,
+                                  stride=1,
+                                  padding=1)
+        self.conv1d_2 = nn.Conv1d(in_channels=16,
+                                  out_channels=32,
+                                  kernel_size=3,
+                                  stride=1,
+                                  padding=1)
+
+        self.lstm = nn.LSTM(input_size=32,
+                            hidden_size=50,
+                            num_layers=1,
+                            bias=True,
+                            bidirectional=False,
+                            batch_first=True)
+
+        self.dropout = nn.Dropout(0.5)
+
+        self.dense1 = nn.Linear(50, 32)
+        self.dense2 = nn.Linear(32, 1)
 
     def forward(self, x):
-        x = x.permute(0, 2, 1) # change to (batch, seq, features)
-        out = self.layer1(x)
-        out = self.layer2(out)
-        out = self.layer3(out)
-        out = self.sigmoid(out)
-        return out
+        # Raw x shape : (B, S, F) => (B, 64, 11)
+
+        # Shape : (B, F, S) => (B, 11, 64)
+        x = x.transpose(1, 2)
+        # Shape : (B, F, S) == (B, C, S) // C = channel => (B, 16, 64)
+        x = self.conv1d_1(x)
+        # Shape : (B, C, S) => (B, 32, 64)
+        x = self.conv1d_2(x)
+        # Shape : (B, S, C) == (B, S, F) => (B, 64, 32)
+        x = x.transpose(1, 2)
+
+        self.lstm.flatten_parameters()
+        # Shape : (B, S, H) // H = hidden_size => (B, 64, 50)
+        _, (hidden, _) = self.lstm(x)
+        # Shape : (B, H) // -1 means the last sequence => (B, 50)
+        x = hidden[-1]
+
+        # Shape : (B, H) => (B, 50)
+        x = self.dropout(x)
+
+        # Shape : (B, 32)
+        x = self.dense1(x)
+        # Shape : (B, O) // O = output => (B, 1)
+        x = self.dense2(x)
+        return x
+    # def __init__(self, seq_len, number_of_features, hidden_size):
+    #     super().__init__()
+    #     self.layer1 = nn.Sequential(
+    #         nn.Conv1d(in_channels=number_of_features, out_channels=hidden_size, kernel_size=3, stride=1),  # 11,64
+    #         nn.ReLU(),
+    #         # nn.MaxPool1d(4)
+    #     )
+    #     self.layer2 = nn.Flatten()
+    #     self.layer3 = nn.Linear(in_features=64*62, out_features=512)
+    #     self.layer4 = nn.Linear(in_features=512, out_features=256)
+    #     self.layer5 = nn.Linear(in_features=256, out_features=1)
+    #     self.sigmoid = nn.Sigmoid()
+    #
+    # def forward(self, x):
+    #     x = x.permute(0, 2, 1) # change to (batch, seq, features)
+    #     out = self.layer1(x)
+    #     out = self.layer2(out)
+    #     out = self.layer3(out)
+    #     out = self.layer4(out)
+    #     out = self.layer5(out)
+    #     # out = self.sigmoid(out)
+    #     return out
 
 #
 # # class lstm_predictor(nn.Module):

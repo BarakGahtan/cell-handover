@@ -3,7 +3,8 @@ import copy
 import os
 import pickle
 from datetime import datetime
-
+from random import choice
+import random
 import numpy as np
 import pandas as pd
 import torch
@@ -53,18 +54,29 @@ def balance_data_set(seq, seq_label):
 
 
 def prepare_data_sets(data_frame, SEQ_LEN, balanced):
-    seq, seq_label = create_seq(data_frame, SEQ_LEN)
-    oversampled_seq, oversampled_labels, count_label_0, count_label_1 = balance_data_set(seq, seq_label)
     if balanced:
-        data_set_size = oversampled_seq.shape[0]
+        so_idxs = data_frame.index[data_frame['switchover_global'] == 1].tolist()
+        no_so_idxs = [random.randint(so_idxs[0], so_idxs[-1]) for _ in range(len(so_idxs)) if random.randint(so_idxs[0], so_idxs[-1]) not in so_idxs]
+        balanced_indexes = [j for i in [no_so_idxs, so_idxs] for j in i]
+        random.shuffle(balanced_indexes)
+        xs, ys = [], []
+        for i in range(len(balanced_indexes)):
+            x = data_frame.iloc[balanced_indexes[i]-SEQ_LEN:balanced_indexes[i]].drop(["switchover_global"], axis=1)
+            y = data_frame["switchover_global"].iloc[balanced_indexes[i]]
+            x.dropna(inplace=True)
+            if len(x) == SEQ_LEN:
+                xs.append(x)
+                ys.append(y)
+        xs = np.array(xs)
+        ys = np.array(ys)
+        data_set_size = xs.shape[0]
         train_size = int(data_set_size * 0.8)
         test_size = int(int(data_set_size - train_size) / 2)
-        x_train, y_train = copy.copy(oversampled_seq[:train_size]), copy.copy(oversampled_labels[:train_size])
-        X_val, y_val = copy.copy(oversampled_seq[train_size:train_size + test_size]), copy.copy(
-            oversampled_labels[train_size:train_size + test_size])
-        X_test, y_test = copy.copy(oversampled_seq[train_size + test_size:]), copy.copy(
-            oversampled_labels[train_size + test_size:])
+        x_train, y_train = copy.copy(xs[:train_size]), copy.copy(ys[:train_size])
+        X_val, y_val = copy.copy(xs[train_size:train_size + test_size]), copy.copy(ys[train_size:train_size + test_size])
+        X_test, y_test = copy.copy(xs[train_size + test_size:]), copy.copy(ys[train_size + test_size:])
     else:
+        seq, seq_label = create_seq(data_frame, SEQ_LEN)
         data_set_size = seq.shape[0]
         train_size = int(data_set_size * 0.8)
         test_size = int(int(data_set_size - train_size) / 2)
@@ -73,30 +85,23 @@ def prepare_data_sets(data_frame, SEQ_LEN, balanced):
             seq_label[train_size:train_size + test_size])
         X_test, y_test = copy.copy(seq[train_size + test_size:]), copy.copy(
             seq_label[train_size + test_size:])
-    pickle.dump(x_train, open('x_train_balanced_64.pkl', "wb"))
-    pickle.dump(y_train, open('y_train_balanced_64.pkl', "wb"))
-    pickle.dump(X_val, open('X_val_balanced_64.pkl', "wb"))
-    pickle.dump(y_val, open('y_val_balanced_64.pkl', "wb"))
-    pickle.dump(X_test, open('X_test_balanced_64.pkl', "wb"))
-    pickle.dump(y_test, open('y_test_balanced_64.pkl', "wb"))
+    pickle.dump(x_train, open('x_train_balanced_64_1_imei.pkl', "wb"))
+    pickle.dump(y_train, open('y_train_balanced_64_1_imei.pkl', "wb"))
+    pickle.dump(X_val, open('X_val_balanced_64_1_imei.pkl', "wb"))
+    pickle.dump(y_val, open('y_val_balanced_64_1_imei.pkl', "wb"))
+    pickle.dump(X_test, open('X_test_balanced_64_1_imei.pkl', "wb"))
+    pickle.dump(y_test, open('y_test_balanced_64_1_imei.pkl', "wb"))
     return make_Tensor(x_train), make_Tensor(y_train), make_Tensor(X_val), make_Tensor(y_val), make_Tensor(X_test), \
-        make_Tensor(y_test), count_label_0, count_label_1
+        make_Tensor(y_test)
     # return make_Tensor(x_train), make_Tensor(y_train), make_Tensor(X_val), make_Tensor(y_val), make_Tensor(X_test), \
     #     make_Tensor(y_test)
     # return x_train, y_train, X_val, y_val, X_test, y_test
 
 
 def main_training_loop(epochs, training_loader, validation_loader, seq_len, number_of_features, hidden_size):
-    net = architecture.cnn_predictor(seq_len, number_of_features, hidden_size)
+    net = architecture.cnn_lstm_hybrid(features=number_of_features)
     criterion = torch.nn.BCELoss()
     optimizer = optim.Adam(net.parameters(), lr=0.0001)
-    # path = r"E:runs/"
-    # for file_name in os.listdir(path):
-    #     # construct full file path
-    #     file = path + file_name
-    #     if os.path.isfile(file):
-    #         print('Deleting file:', file)
-    #         os.remove(file)
     writer = SummaryWriter('runs/1')
     # To view, start TensorBoard on the command line with:
     #   tensorboard --logdir=runs
@@ -113,7 +118,7 @@ def main_training_loop(epochs, training_loader, validation_loader, seq_len, numb
             optimizer.step()
 
             running_loss += loss.item()
-            if i % 10 == 9:  # Every 1000 mini-batches...
+            if i % 100 == 99:
                 print('Batch {}'.format(i + 1))
                 # Check against the validation set
                 running_vloss = 0.0
@@ -126,13 +131,12 @@ def main_training_loop(epochs, training_loader, validation_loader, seq_len, numb
                     running_vloss += vloss.item()
                 net.train(True)  # Turn gradients back on for training
 
-                avg_loss = running_loss / 9
+                avg_loss = running_loss / 99
                 avg_vloss = running_vloss / len(validation_loader)
 
                 # Log the running loss averaged per batch
-                writer.add_scalars('Training vs. Validation Loss - 64 sequence length - not balanced',
-                                   {'Training': avg_loss, 'Validation': avg_vloss},
-                                   epoch * len(training_loader) + i)
+                writer.add_scalars('Training', {'Training': avg_loss}, epoch)
+                writer.add_scalars('Validation Loss', {'Validation': avg_vloss}, epoch)
 
                 running_loss = 0.0
     print('Finished Training')

@@ -1,9 +1,13 @@
+import copy
+import random
 import warnings
+from random import choice
 
 import numpy as np
 import pandas as pd
 import torch
 import torch.optim as optim
+from sklearn.preprocessing import MinMaxScaler, LabelEncoder
 from torch import nn
 import pickle
 import input_parser
@@ -12,6 +16,7 @@ from load_drives import init_drives_dataset, get_cells_per_drive_in_dataset, pre
     normalize_correlate_features, training_sets_init
 from training import prepare_data_sets
 from torch.utils.data import TensorDataset, DataLoader
+
 
 warnings.filterwarnings("ignore")
 
@@ -27,34 +32,52 @@ if __name__ == "__main__":
     LSTM_FLAG = opts.lstm_enable
     BALANCED_FLAG = opts.bdataset
     CNN_FLAG = opts.cnn_enable
-    to_balance = False
-    if opts.load_from_files is False:
-        device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        drives_by_imei_train, returned_drives_by_imei_dict_train, list_of_drives = init_drives_dataset('pickle_rick.pkl', DRIVE_NUM_TRAIN, NUM_DRIVES)
-        cells_per_drives_in_dataset_train, cells_dict_train = get_cells_per_drive_in_dataset(returned_drives_by_imei_dict_train)
+    to_balance = True
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    if opts.load_from_files == 0:
+        returned_drives_by_imei_dict_train = init_drives_dataset('pickle_rick.pkl', DRIVE_NUM_TRAIN, NUM_DRIVES)
+        # cells_per_drives_in_dataset_train, cells_dict_train = get_cells_per_drive_in_dataset(returned_drives_by_imei_dict_train)
         drives_by_imei_dict_train = prepare_switchover_col(returned_drives_by_imei_dict_train)
-        training_data_by_so = training_sets_init(drives_by_imei_dict_train)
+        training_data = training_sets_init(drives_by_imei_dict_train, opts.max_switch_over)
         # correlated_data_dict_train = normalize_correlate_features(drives_by_imei_dict_train)
-        correlated_data_dict_train = normalize_correlate_features(training_data_by_so)
+        correlated_data_dict_train = normalize_correlate_features(training_data)
         data_set_concat_train = pd.concat(correlated_data_dict_train, axis=0).reset_index()
         data_set_concat_train.drop(["level_0", "level_1"], axis=1, inplace=True)
-        X_train_seq, y_train_label, x_val_seq, y_val_label, x_test_seq, y_test_label, count_label_0, count_label_1 = \
+        X_train_seq, y_train_label, x_val_seq, y_val_label, x_test_seq, y_test_label = \
             prepare_data_sets(data_set_concat_train, SEQ_LEN=SEQ_LEN, balanced=to_balance)
     else:
-        X_train_seq = training.make_Tensor(np.array(pickle.load(open('x_train_not_balanced_64.pkl', "rb"))))
-        y_train_label = training.make_Tensor(np.array(pickle.load(open('y_train_not_balanced_64.pkl', "rb"))))
-        x_val_seq = training.make_Tensor(np.array(pickle.load(open('X_val_not_balanced_64.pkl', "rb"))))
-        y_val_label = training.make_Tensor(np.array(pickle.load(open('y_val_not_balanced_64.pkl', "rb"))))
-        x_test_seq = training.make_Tensor(np.array(pickle.load(open('X_test_not_balanced_64.pkl', "rb"))))
-        y_test_label = training.make_Tensor(np.array(pickle.load(open('y_test_not_balanced_64.pkl', "rb"))))
+        X_train_seq = training.make_Tensor(np.array(pickle.load(open('x_train_balanced_64_1_imei.pkl', "rb"))))
+        y_train_label = training.make_Tensor(np.array(pickle.load(open('y_train_balanced_64_1_imei.pkl', "rb"))))
+        x_val_seq = training.make_Tensor(np.array(pickle.load(open('X_val_balanced_64_1_imei.pkl', "rb"))))
+        y_val_label = training.make_Tensor(np.array(pickle.load(open('y_val_balanced_64_1_imei.pkl', "rb"))))
+        x_test_seq = training.make_Tensor(np.array(pickle.load(open('X_test_balanced_64_1_imei.pkl', "rb"))))
+        y_test_label = training.make_Tensor(np.array(pickle.load(open('y_test_balanced_64_1_imei.pkl', "rb"))))
 
+    # seq = pickle.load(open('x_data_eli1.pkl', "rb"))
+    # y_data = pickle.load(open('y_data_eli1.pkl', "rb"))
+    # seq_label = np.array(LabelEncoder().fit_transform(y_data)).astype("float32")
+    # seq = np.array(seq)
+    # data_set_size = seq.shape[0]
+    # train_size = int(data_set_size * 0.8)
+    # test_size = int(int(data_set_size - train_size) / 2)
+    # x_train, y_train = copy.copy(seq[:train_size]), copy.copy(seq_label[:train_size])
+    # X_val, y_val = copy.copy(seq[train_size:train_size + test_size]), copy.copy(
+    #     seq_label[train_size:train_size + test_size])
+    # X_test, y_test = copy.copy(seq[train_size + test_size:]), copy.copy(
+    #     seq_label[train_size + test_size:])
+    # X_train_seq = training.make_Tensor(x_train)
+    # y_train_label = training.make_Tensor(y_train)
+    # x_val_seq = training.make_Tensor(X_val)
+    # y_val_label = training.make_Tensor(y_val)
+    # x_test_seq = training.make_Tensor(X_test)
+    # y_test_label = training.make_Tensor(y_test)
     train_data_set = TensorDataset(X_train_seq, y_train_label)
     train_loader = DataLoader(train_data_set, batch_size=opts.batch_size, shuffle=False, drop_last=True)
     val_data_set = TensorDataset(x_val_seq, y_val_label)
     val_loader = DataLoader(val_data_set, batch_size=opts.batch_size, shuffle=False, drop_last=True)
     test_data_set = TensorDataset(x_test_seq, y_test_label)
     test_loader = DataLoader(test_data_set, batch_size=opts.batch_size, shuffle=False, drop_last=True)
-    # DATA IS TENSORS
+    # # DATA IS TENSORS
 
     output_dim = 1
     hidden_dim = NN_SIZE
@@ -62,6 +85,7 @@ if __name__ == "__main__":
     batch_size = opts.batch_size
     n_epochs = opts.epoch_number
     features_count = X_train_seq.shape[2]
+
     training.main_training_loop(epochs=n_epochs, training_loader=train_loader,
                                 validation_loader=val_loader,
                                 seq_len=SEQ_LEN,
