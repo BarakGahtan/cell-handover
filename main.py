@@ -92,6 +92,8 @@ if __name__ == "__main__":
                                 number_of_features=features_count,
                                 hidden_size=hidden_dim)
 
+
+
     # cnn_model = cnn1d_model(seq_len=SEQ_LEN, number_of_features=features_count)  # number features is the seqeunce len * max pooling of Conv1D
     # combined_model = architecture.cnn_lstm_combined(cnn_model, number_features=features_count,
     #                                                 n_hidden=NN_LAYERS, seq_len=SEQ_LEN,

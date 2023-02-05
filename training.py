@@ -53,9 +53,6 @@ def balance_data_set(seq, seq_label):
     # majority_label = majority_label.reshape(majority_label.shape[0],-1)
 
 
-def mape(y_true, y_pred):
-    return 100 * np.mean(np.abs(y_true - y_pred))
-
 
 def prepare_data_sets(data_frame, SEQ_LEN, balanced):
     if balanced:
@@ -102,58 +99,100 @@ def prepare_data_sets(data_frame, SEQ_LEN, balanced):
     # return x_train, y_train, X_val, y_val, X_test, y_test
 
 
-def main_training_loop(epochs, training_loader, validation_loader, seq_len, number_of_features, hidden_size):
-    net = architecture.cnn_lstm_hybrid(features=number_of_features)
-    criterion = torch.nn.BCELoss()
-    optimizer = optim.Adam(net.parameters(), lr=0.0001)
-    writer = SummaryWriter('runs/1')
+class optimizer:
+    def __init__(self, name, epochs, training_loader, validation_loader, test_loader, seq_len, number_of_features, hidden_size, learning_rate):
+        self.name = name
+        self.train_loader = training_loader
+        self.epochs = epochs
+        self.validation_loader = validation_loader
+        self.test_loader = test_loader
+        self.sequence_len = seq_len
+        self.number_of_features = number_of_features
+        self.hidden_size = hidden_size
+        self.net = architecture.cnn_lstm_hybrid(features=number_of_features)
+        self.learn_rate = learning_rate
+        self.average_loss_validation, self.average_loss_training = [], []
+        self.avg_accuracy_prediction_1 = []
+        self.avg_accuracy_prediction_2 = []
+        self.avg_accuracy_prediction_3 = []
+        self.avg_accuracy_prediction_4 = []
+        self.epoch_number = []
+    def main_training_loop(self, epochs, training_loader, validation_loader, seq_len, number_of_features, hidden_size):
+        criterion = torch.nn.BCELoss()
+        optimizer = optim.Adam(self.net.parameters(), lr=self.learn_rate)
+        writer = SummaryWriter('runs/1')
 
-    # To view, start TensorBoard on the command line with:
-    #   tensorboard --logdir=runs
-    # ...and open a browser tab to http://localhost:6006/
-    for epoch in range(epochs):  # loop over the dataset multiple times
-        running_loss = 0.0
-        for i, data in enumerate(training_loader, 0):
-            inputs, labels = data
-            optimizer.zero_grad()
-            outputs = net(inputs)
-            loss = criterion(outputs.squeeze(1), labels)
-            loss.backward()
-            optimizer.step()
-            running_loss += loss.item()
-            if i % 10 == 9:
-                print('Batch {}'.format(i + 1))
-                # Check against the validation set
-                running_vloss, running_true_accuracy = 0.0, 0.0
-                MAPE_acc, MAE_acc = 0.0, 0.0
-                with torch.no_grad():
-                    net.train(False)  # Don't need to track gradients for validation
-                    for j, vdata in enumerate(validation_loader, 0):
-                        vinputs, vlabels = vdata
-                        voutputs = net(vinputs)
-                        vloss = criterion(voutputs.squeeze(1), vlabels)
-                        running_vloss += vloss.item()
-                        vector_1 = np.where(voutputs.numpy().squeeze(1) > 0.5, True, False)
-                        v_labels_tf = np.where(vlabels.numpy() > 0.9, True, False)
-                        mape_voutputs = np.where(voutputs.numpy().squeeze(1) > 0.5, 1, 0)
-                        mape_labels = np.where(vlabels.numpy() > 0.9, 1, 0)
-                        bit_xor = np.bitwise_not(np.bitwise_xor(vector_1, v_labels_tf))
-                        running_true_accuracy = running_true_accuracy + bit_xor.sum() / len(bit_xor)
-                        mape_res = mape(mape_labels, mape_voutputs)
-                        MAPE_acc = MAPE_acc + mape_res
+        # To view, start TensorBoard on the command line with:
+        #   tensorboard --logdir=runs
+        # ...and open a browser tab to http://localhost:6006/
+        for epoch in range(self.epochs):  # loop over the dataset multiple times
+            running_loss = 0.0
+            for i, data in enumerate(self.train_loader, 0):
+                inputs, labels = data
+                optimizer.zero_grad()
+                outputs = self.net(inputs)
+                loss = criterion(outputs.squeeze(1), labels)
+                loss.backward()
+                optimizer.step()
+                running_loss += loss.item()
+                if i % 10 == 9:
+                    print('Batch {}'.format(i + 1))
+                    # Check against the validation set
+                    running_vloss, running_true_accuracy = 0.0, 0.0
+                    MAPE_acc, MAE_acc = 0.0, 0.0
+                    with torch.no_grad():
+                        self.net.train(False)  # Don't need to track gradients for validation
+                        for j, vdata in enumerate(self.validation_loader, 0):
+                            vinputs, vlabels = vdata
+                            voutputs = self.net(vinputs)
+                            vloss = criterion(voutputs.squeeze(1), vlabels)
+                            running_vloss += vloss.item()
+                            vector_1 = np.where(voutputs.numpy().squeeze(1) > 0.5, True, False)
+                            vector_2 = np.where(voutputs.numpy().squeeze(1) > 0.55, True, False)
+                            vector_3 = np.where(voutputs.numpy().squeeze(1) > 0.6, True, False)
+                            vector_4 = np.where(voutputs.numpy().squeeze(1) > 0.65, True, False)
+                            v_labels_tf = np.where(vlabels.numpy() > 0.9, True, False)
+                            bit_xor_1 = np.bitwise_not(np.bitwise_xor(vector_1, v_labels_tf))
+                            bit_xor_2 = np.bitwise_not(np.bitwise_xor(vector_2, v_labels_tf))
+                            bit_xor_3 = np.bitwise_not(np.bitwise_xor(vector_3, v_labels_tf))
+                            bit_xor_4 = np.bitwise_not(np.bitwise_xor(vector_4, v_labels_tf))
+                            running_true_accuracy_1 = running_true_accuracy + bit_xor_1.sum() / len(bit_xor_1)
+                            running_true_accuracy_2 = running_true_accuracy + bit_xor_2.sum() / len(bit_xor_2)
+                            running_true_accuracy_3 = running_true_accuracy + bit_xor_3.sum() / len(bit_xor_3)
+                            running_true_accuracy_4 = running_true_accuracy + bit_xor_4.sum() / len(bit_xor_4)
+                    self.net.train(True)  # Turn gradients back on for training
 
-                net.train(True)  # Turn gradients back on for training
+                    avg_loss = running_loss / 9
+                    avg_vloss = running_vloss / len(validation_loader)
+                    avg_accuracy_prediction_1 = running_true_accuracy_1 / len(validation_loader)
+                    avg_accuracy_prediction_2 = running_true_accuracy_2 / len(validation_loader)
+                    avg_accuracy_prediction_3 = running_true_accuracy_3 / len(validation_loader)
+                    avg_accuracy_prediction_4 = running_true_accuracy_4 / len(validation_loader)
+                    # Log the running loss averaged per batch
+                    writer.add_scalars('Training vs. Validation Loss', {'Training': avg_loss, 'Validation': avg_vloss}, epoch + 1)
+                    writer.add_scalars('True accuracy', {'accuracy-0.5': avg_accuracy_prediction_1,
+                                                         'accuracy-0.55': avg_accuracy_prediction_2,
+                                                         'accuracy-0.6': avg_accuracy_prediction_3,
+                                                         'accuracy-0.65': avg_accuracy_prediction_4}, epoch + 1)
+                    self.average_loss_validation.append(avg_vloss)
+                    self.average_loss_training.append(avg_loss)
+                    self.avg_accuracy_prediction_1.append(avg_accuracy_prediction_1)
+                    self.avg_accuracy_prediction_2.append(avg_accuracy_prediction_2)
+                    self.avg_accuracy_prediction_3.append(avg_accuracy_prediction_3)
+                    self.avg_accuracy_prediction_4.append(avg_accuracy_prediction_2)
+                    self.epoch_number.append(epoch)
+                    writer.flush()
+                    running_loss = 0.0
+        self.write_to_file()
+        print('Finished Training')
+        writer.flush()
 
-                avg_loss = running_loss / 9
-                avg_vloss = running_vloss / len(validation_loader)
-                avg_accuracy_prediction = running_true_accuracy / len(validation_loader)
-                avg_MAPE = MAPE_acc / len(validation_loader)
-                # Log the running loss averaged per batch
-                writer.add_scalars('Training vs. Validation Loss', {'Training': avg_loss, 'Validation': avg_vloss}, epoch + 1)
-                writer.add_scalars('True accuracy', {'accuracy': avg_accuracy_prediction}, epoch + 1)
-                writer.add_scalars('MAPE accuracy', {'MAPE': avg_MAPE}, epoch + 1)
-                writer.flush()
-                running_loss = 0.0
-    print('Finished Training')
-
-    writer.flush()
+    def write_to_file(self):
+        df = pd.DataFrame({'avg_validation_loss': self.average_loss_validation,
+                           'avg_training_loss': self.average_loss_training,
+                           'accuracy_05': self.avg_accuracy_prediction_1,
+                           'accuracy_055': self.avg_accuracy_prediction_2,
+                           'accuracy_06': self.avg_accuracy_prediction_3,
+                           'accuracy_065': self.avg_accuracy_prediction_4,
+                           'epochs': self.epoch_number})
+        df.to_csv(self.name + '.csv', index=False)
