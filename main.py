@@ -24,13 +24,10 @@ if __name__ == "__main__":
     opts = parsed_args.parse()
     NUM_DRIVES = opts.number_drives
     DRIVE_NUM_TRAIN = opts.starting_drive_train
-    DRIVE_NUM_TEST = opts.starting_drive_test
     SEQ_LEN = opts.sequence_length
     NN_SIZE = opts.neuralnetwork_size
     NN_LAYERS = opts.neuralnetwork_layers
-    LSTM_FLAG = opts.lstm_enable
     BALANCED_FLAG = opts.bdataset
-    CNN_FLAG = opts.cnn_enable
     batch_size = opts.batch_size
     n_epochs = opts.epoch_number
     to_balance = True
@@ -45,7 +42,7 @@ if __name__ == "__main__":
         data_set_concat_train = pd.concat(correlated_data_dict_train, axis=0).reset_index()
         data_set_concat_train.drop(["level_0", "level_1"], axis=1, inplace=True)
         X_train_seq, y_train_label, x_val_seq, y_val_label, x_test_seq, y_test_label = \
-            prepare_data_sets(data_set_concat_train, SEQ_LEN=SEQ_LEN, balanced=to_balance)
+            prepare_data_sets(data_set_concat_train, SEQ_LEN=SEQ_LEN, balanced=to_balance, name=opts.model_name)
     else:
         X_train_seq = training.make_Tensor(np.array(pickle.load(open('x_train_balanced_64_all_imei.pkl', "rb"))))
         y_train_label = training.make_Tensor(np.array(pickle.load(open('y_train_balanced_64_all_imei.pkl', "rb"))))

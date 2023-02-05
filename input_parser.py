@@ -31,7 +31,7 @@ class Parser(object):
         parser_.add_argument('-wd', '--weight_decay', default=0.0000001, type=float, help='weight decay')
         parser_.add_argument('-lff', '--load_from_files', default=1, type=int, help='if to preprocess or not the data')
         parser_.add_argument('-mso', '--max_switch_over', default=0, type=int, help='Generate data set with maximum switchover per drive')
-        parser_.add_argument('-name', 'model_name', default="", type=str, help='name of the model')
+        parser_.add_argument('-name', '--model_name', default="", type=str, help='name of the model')
         parser_.add_argument('-tt', '--to_train', default=0, type=int, help='If to send the model to train')
         args = parser_.parse_args()
         return args
