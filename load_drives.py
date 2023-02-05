@@ -121,7 +121,7 @@ def create_seq(data_dict, seq_length):
 
 def training_sets_init(given_dict, max_switchover):
     result_dict = {}
-    if max_switchover:
+    if max_switchover == 1:
         keys = given_dict.keys()
         special_character = "_"
         keys_drives = set([s[:s.index(special_character, s.index(special_character) + 1)] for s in keys])

@@ -1,0 +1,3 @@
+#!/bin/bash
+
+python3 main.py -nd 450 -ndtrain 100 -ndtest 500 -seq 64 -nnsize 64 -nnlayers 2 -lstm 1 -balanced 1 -bs 256 -tt 0 -name seq_64_450 -mso 0 -lff 0

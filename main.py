@@ -17,7 +17,6 @@ from load_drives import init_drives_dataset, get_cells_per_drive_in_dataset, pre
 from training import prepare_data_sets
 from torch.utils.data import TensorDataset, DataLoader
 
-
 warnings.filterwarnings("ignore")
 
 if __name__ == "__main__":
@@ -32,6 +31,8 @@ if __name__ == "__main__":
     LSTM_FLAG = opts.lstm_enable
     BALANCED_FLAG = opts.bdataset
     CNN_FLAG = opts.cnn_enable
+    batch_size = opts.batch_size
+    n_epochs = opts.epoch_number
     to_balance = True
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     if opts.load_from_files == 0:
@@ -71,28 +72,20 @@ if __name__ == "__main__":
     # y_val_label = training.make_Tensor(y_val)
     # x_test_seq = training.make_Tensor(X_test)
     # y_test_label = training.make_Tensor(y_test)
-    train_data_set = TensorDataset(X_train_seq, y_train_label)
-    train_loader = DataLoader(train_data_set, batch_size=opts.batch_size, shuffle=False, drop_last=True)
-    val_data_set = TensorDataset(x_val_seq, y_val_label)
-    val_loader = DataLoader(val_data_set, batch_size=opts.batch_size, shuffle=False, drop_last=True)
-    test_data_set = TensorDataset(x_test_seq, y_test_label)
-    test_loader = DataLoader(test_data_set, batch_size=opts.batch_size, shuffle=False, drop_last=True)
-    # # DATA IS TENSORS
 
-    output_dim = 1
-    hidden_dim = NN_SIZE
-    layer_dim = NN_LAYERS
-    batch_size = opts.batch_size
-    n_epochs = opts.epoch_number
-    features_count = X_train_seq.shape[2]
-
-    training.main_training_loop(epochs=n_epochs, training_loader=train_loader,
-                                validation_loader=val_loader,
-                                seq_len=SEQ_LEN,
-                                number_of_features=features_count,
-                                hidden_size=hidden_dim)
-
-
+    if opts.to_train == 1:
+        train_data_set = TensorDataset(X_train_seq, y_train_label)
+        train_loader = DataLoader(train_data_set, batch_size=opts.batch_size, shuffle=False, drop_last=True)
+        val_data_set = TensorDataset(x_val_seq, y_val_label)
+        val_loader = DataLoader(val_data_set, batch_size=opts.batch_size, shuffle=False, drop_last=True)
+        test_data_set = TensorDataset(x_test_seq, y_test_label)
+        test_loader = DataLoader(test_data_set, batch_size=opts.batch_size, shuffle=False, drop_last=True)
+        features_count = X_train_seq.shape[2]
+        training_class = training.optimizer(opts.name, n_epochs, train_loader, val_loader, test_loader, SEQ_LEN, features_count, NN_SIZE,
+                                            opts.learn_rate)
+        training_class.main_training_loop()
+    else:
+        print("finished making a data set.")
 
     # cnn_model = cnn1d_model(seq_len=SEQ_LEN, number_of_features=features_count)  # number features is the seqeunce len * max pooling of Conv1D
     # combined_model = architecture.cnn_lstm_combined(cnn_model, number_features=features_count,

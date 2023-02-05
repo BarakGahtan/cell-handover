@@ -53,8 +53,7 @@ def balance_data_set(seq, seq_label):
     # majority_label = majority_label.reshape(majority_label.shape[0],-1)
 
 
-
-def prepare_data_sets(data_frame, SEQ_LEN, balanced):
+def prepare_data_sets(data_frame, SEQ_LEN, balanced, name):
     if balanced:
         so_idxs = data_frame.index[data_frame['switchover_global'] == 1].tolist()
         no_so_idxs = [random.randint(so_idxs[0], so_idxs[-1]) for _ in range(len(so_idxs)) if random.randint(so_idxs[0], so_idxs[-1]) not in so_idxs]
@@ -86,12 +85,12 @@ def prepare_data_sets(data_frame, SEQ_LEN, balanced):
             seq_label[train_size:train_size + test_size])
         X_test, y_test = copy.copy(seq[train_size + test_size:]), copy.copy(
             seq_label[train_size + test_size:])
-    pickle.dump(x_train, open('x_train_balanced_64_all_imei.pkl', "wb"))
-    pickle.dump(y_train, open('y_train_balanced_64_all_imei.pkl', "wb"))
-    pickle.dump(X_val, open('X_val_balanced_64_all_imei.pkl', "wb"))
-    pickle.dump(y_val, open('y_val_balanced_64_all_imei.pkl', "wb"))
-    pickle.dump(X_test, open('X_test_balanced_64_all_imei.pkl', "wb"))
-    pickle.dump(y_test, open('y_test_balanced_64_all_imei.pkl', "wb"))
+    pickle.dump(x_train, open('x_train_' + name + '.pkl', "wb"))
+    pickle.dump(y_train, open('y_train_' + name + '.pkl', "wb"))
+    pickle.dump(X_val, open('X_val_' + name + '.pkl', "wb"))
+    pickle.dump(y_val, open('y_val_' + name + '.pkl', "wb"))
+    pickle.dump(X_test, open('X_test_' + name + '.pkl', "wb"))
+    pickle.dump(y_test, open('y_test_' + name + '.pkl', "wb"))
     return make_Tensor(x_train), make_Tensor(y_train), make_Tensor(X_val), make_Tensor(y_val), make_Tensor(X_test), \
         make_Tensor(y_test)
     # return make_Tensor(x_train), make_Tensor(y_train), make_Tensor(X_val), make_Tensor(y_val), make_Tensor(X_test), \
@@ -117,9 +116,20 @@ class optimizer:
         self.avg_accuracy_prediction_3 = []
         self.avg_accuracy_prediction_4 = []
         self.epoch_number = []
-    def main_training_loop(self, epochs, training_loader, validation_loader, seq_len, number_of_features, hidden_size):
+
+    def write_to_file(self):
+        df = pd.DataFrame({'avg_validation_loss': self.average_loss_validation,
+                           'avg_training_loss': self.average_loss_training,
+                           'accuracy_05': self.avg_accuracy_prediction_1,
+                           'accuracy_055': self.avg_accuracy_prediction_2,
+                           'accuracy_06': self.avg_accuracy_prediction_3,
+                           'accuracy_065': self.avg_accuracy_prediction_4,
+                           'epochs': self.epoch_number})
+        df.to_csv(self.name + '.csv', index=False)
+
+    def main_training_loop(self):
         criterion = torch.nn.BCELoss()
-        optimizer = optim.Adam(self.net.parameters(), lr=self.learn_rate)
+        optim_to_learn = optim.Adam(self.net.parameters(), lr=self.learn_rate)
         writer = SummaryWriter('runs/1')
 
         # To view, start TensorBoard on the command line with:
@@ -129,17 +139,16 @@ class optimizer:
             running_loss = 0.0
             for i, data in enumerate(self.train_loader, 0):
                 inputs, labels = data
-                optimizer.zero_grad()
+                optim_to_learn.zero_grad()
                 outputs = self.net(inputs)
                 loss = criterion(outputs.squeeze(1), labels)
                 loss.backward()
-                optimizer.step()
+                optim_to_learn.step()
                 running_loss += loss.item()
                 if i % 10 == 9:
                     print('Batch {}'.format(i + 1))
                     # Check against the validation set
                     running_vloss, running_true_accuracy = 0.0, 0.0
-                    MAPE_acc, MAE_acc = 0.0, 0.0
                     with torch.no_grad():
                         self.net.train(False)  # Don't need to track gradients for validation
                         for j, vdata in enumerate(self.validation_loader, 0):
@@ -163,11 +172,11 @@ class optimizer:
                     self.net.train(True)  # Turn gradients back on for training
 
                     avg_loss = running_loss / 9
-                    avg_vloss = running_vloss / len(validation_loader)
-                    avg_accuracy_prediction_1 = running_true_accuracy_1 / len(validation_loader)
-                    avg_accuracy_prediction_2 = running_true_accuracy_2 / len(validation_loader)
-                    avg_accuracy_prediction_3 = running_true_accuracy_3 / len(validation_loader)
-                    avg_accuracy_prediction_4 = running_true_accuracy_4 / len(validation_loader)
+                    avg_vloss = running_vloss / len(self.validation_loader)
+                    avg_accuracy_prediction_1 = running_true_accuracy_1 / len(self.validation_loader)
+                    avg_accuracy_prediction_2 = running_true_accuracy_2 / len(self.validation_loader)
+                    avg_accuracy_prediction_3 = running_true_accuracy_3 / len(self.validation_loader)
+                    avg_accuracy_prediction_4 = running_true_accuracy_4 / len(self.validation_loader)
                     # Log the running loss averaged per batch
                     writer.add_scalars('Training vs. Validation Loss', {'Training': avg_loss, 'Validation': avg_vloss}, epoch + 1)
                     writer.add_scalars('True accuracy', {'accuracy-0.5': avg_accuracy_prediction_1,
@@ -184,15 +193,6 @@ class optimizer:
                     writer.flush()
                     running_loss = 0.0
         self.write_to_file()
+        torch.save(self.net.state_dict(), self.name + '.pt')
         print('Finished Training')
         writer.flush()
-
-    def write_to_file(self):
-        df = pd.DataFrame({'avg_validation_loss': self.average_loss_validation,
-                           'avg_training_loss': self.average_loss_training,
-                           'accuracy_05': self.avg_accuracy_prediction_1,
-                           'accuracy_055': self.avg_accuracy_prediction_2,
-                           'accuracy_06': self.avg_accuracy_prediction_3,
-                           'accuracy_065': self.avg_accuracy_prediction_4,
-                           'epochs': self.epoch_number})
-        df.to_csv(self.name + '.csv', index=False)
