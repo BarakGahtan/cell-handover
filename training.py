@@ -136,10 +136,10 @@ class optimizer:
         avg_vloss = float('inf')
         criterion = torch.nn.BCELoss()
         optim_to_learn = optim.Adam(self.net.parameters(), lr=self.learn_rate)
-        writer = SummaryWriter('models/' + self.name)
         best_val_loss = float('inf')
         counter = 0
         patience = 20
+        writer = SummaryWriter('models/' + self.name + '_batch_size_' + str(self.batch_size))
         # To view, start TensorBoard on the command line with:
         #   tensorboard --logdir=model/sseq_32_20
         # ...and open a browser tab to http://localhost:6006/
