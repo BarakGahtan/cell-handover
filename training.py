@@ -128,13 +128,14 @@ class optimizer:
         df.to_csv(self.name + '.csv', index=False)
 
     def main_training_loop(self):
+        avg_vloss = float('inf')
         criterion = torch.nn.BCELoss()
         optim_to_learn = optim.Adam(self.net.parameters(), lr=self.learn_rate)
         writer = SummaryWriter('models/'+ self.name)
         best_val_loss = float('inf')
         counter, patience = 0, 15
         # To view, start TensorBoard on the command line with:
-        #   tensorboard --logdir=runs
+        #   tensorboard --logdir=model/sseq_32_20
         # ...and open a browser tab to http://localhost:6006/
         for epoch in range(self.epochs):  # loop over the dataset multiple times
             running_loss = 0.0
@@ -191,20 +192,20 @@ class optimizer:
                     self.avg_accuracy_prediction_3.append(avg_accuracy_prediction_3)
                     self.avg_accuracy_prediction_4.append(avg_accuracy_prediction_2)
                     self.epoch_number.append(epoch)
-                    # Save the best model based on validation loss
-                    if avg_vloss < best_val_loss:
-                        best_val_loss = avg_vloss
-                        torch.save(self.net.state_dict(), 'best_model_' + self.name + '.pt')
-                        counter = 0
-                    else:
-                        counter = counter + 1
-                    # Stop training if the validation loss hasn't improved for a certain number of epochs (patience)
-                    if counter >= patience:
-                        print("Early stopping at epoch {}".format(epoch))
-                        break
+
                     writer.flush()
                     running_loss = 0.0
-
+                # Save the best model based on validation loss
+                if avg_vloss < best_val_loss:
+                    best_val_loss = avg_vloss
+                    torch.save(self.net.state_dict(), 'best_model_epoc_' + str(epoch) + '_' + self.name + '.pt')
+                    counter = 0
+                else:
+                    counter = counter + 1
+                # Stop training if the validation loss hasn't improved for a certain number of epochs (patience)
+                if counter >= patience:
+                    print("Early stopping at epoch {}".format(epoch))
+                    break
         self.write_to_file()
         torch.save(self.net.state_dict(), self.name + '.pt')
         print('Finished Training')
