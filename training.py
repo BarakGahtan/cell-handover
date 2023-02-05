@@ -115,6 +115,7 @@ class optimizer:
         self.avg_accuracy_prediction_2 = []
         self.avg_accuracy_prediction_3 = []
         self.avg_accuracy_prediction_4 = []
+        self.avg_accuracy_prediction_5 = []
         self.epoch_number = []
 
     def write_to_file(self):
@@ -124,6 +125,7 @@ class optimizer:
                            'accuracy_055': self.avg_accuracy_prediction_2,
                            'accuracy_06': self.avg_accuracy_prediction_3,
                            'accuracy_065': self.avg_accuracy_prediction_4,
+                           'accuracy_07': self.avg_accuracy_prediction_5,
                            'epochs': self.epoch_number})
         df.to_csv(self.name + '.csv', index=False)
 
@@ -162,15 +164,18 @@ class optimizer:
                             vector_2 = np.where(voutputs.numpy().squeeze(1) > 0.55, True, False)
                             vector_3 = np.where(voutputs.numpy().squeeze(1) > 0.6, True, False)
                             vector_4 = np.where(voutputs.numpy().squeeze(1) > 0.65, True, False)
+                            vector_5 = np.where(voutputs.numpy().squeeze(1) > 0.7, True, False)
                             v_labels_tf = np.where(vlabels.numpy() > 0.9, True, False)
                             bit_xor_1 = np.bitwise_not(np.bitwise_xor(vector_1, v_labels_tf))
                             bit_xor_2 = np.bitwise_not(np.bitwise_xor(vector_2, v_labels_tf))
                             bit_xor_3 = np.bitwise_not(np.bitwise_xor(vector_3, v_labels_tf))
                             bit_xor_4 = np.bitwise_not(np.bitwise_xor(vector_4, v_labels_tf))
+                            bit_xor_5 = np.bitwise_not(np.bitwise_xor(vector_4, v_labels_tf))
                             running_true_accuracy_1 = running_true_accuracy + bit_xor_1.sum() / len(bit_xor_1)
                             running_true_accuracy_2 = running_true_accuracy + bit_xor_2.sum() / len(bit_xor_2)
                             running_true_accuracy_3 = running_true_accuracy + bit_xor_3.sum() / len(bit_xor_3)
                             running_true_accuracy_4 = running_true_accuracy + bit_xor_4.sum() / len(bit_xor_4)
+                            running_true_accuracy_5 = running_true_accuracy + bit_xor_5.sum() / len(bit_xor_5)
                     self.net.train(True)  # Turn gradients back on for training
 
                     avg_loss = running_loss / 9
@@ -179,18 +184,21 @@ class optimizer:
                     avg_accuracy_prediction_2 = running_true_accuracy_2 / len(self.validation_loader)
                     avg_accuracy_prediction_3 = running_true_accuracy_3 / len(self.validation_loader)
                     avg_accuracy_prediction_4 = running_true_accuracy_4 / len(self.validation_loader)
+                    avg_accuracy_prediction_5 = running_true_accuracy_5 / len(self.validation_loader)
                     # Log the running loss averaged per batch
                     writer.add_scalars('Training vs. Validation Loss', {'Training': avg_loss, 'Validation': avg_vloss}, epoch + 1)
                     writer.add_scalars('True accuracy', {'accuracy-0.5': avg_accuracy_prediction_1,
                                                          'accuracy-0.55': avg_accuracy_prediction_2,
                                                          'accuracy-0.6': avg_accuracy_prediction_3,
-                                                         'accuracy-0.65': avg_accuracy_prediction_4}, epoch + 1)
+                                                         'accuracy-0.65': avg_accuracy_prediction_4,
+                                                         'accuracy-0.7': avg_accuracy_prediction_5}, epoch + 1)
                     self.average_loss_validation.append(avg_vloss)
                     self.average_loss_training.append(avg_loss)
                     self.avg_accuracy_prediction_1.append(avg_accuracy_prediction_1)
                     self.avg_accuracy_prediction_2.append(avg_accuracy_prediction_2)
                     self.avg_accuracy_prediction_3.append(avg_accuracy_prediction_3)
-                    self.avg_accuracy_prediction_4.append(avg_accuracy_prediction_2)
+                    self.avg_accuracy_prediction_4.append(avg_accuracy_prediction_4)
+                    self.avg_accuracy_prediction_5.append(avg_accuracy_prediction_5)
                     self.epoch_number.append(epoch)
 
                     writer.flush()
