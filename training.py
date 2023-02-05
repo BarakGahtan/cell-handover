@@ -135,7 +135,7 @@ class optimizer:
         optim_to_learn = optim.Adam(self.net.parameters(), lr=self.learn_rate)
         writer = SummaryWriter('models/' + self.name)
         best_val_loss = float('inf')
-        counter, patience = 0
+        counter = 0
         patience = 30
         # To view, start TensorBoard on the command line with:
         #   tensorboard --logdir=model/sseq_32_20
