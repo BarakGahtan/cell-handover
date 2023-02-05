@@ -150,9 +150,8 @@ class optimizer:
                 loss.backward()
                 optim_to_learn.step()
                 running_loss += loss.item()
-                if i % 10 == 9:
+                if i % 30 == 29:
                     print('Batch {}'.format(i + 1))
-                    # Check against the validation set
                     running_vloss, running_true_accuracy = 0.0, 0.0
                     with torch.no_grad():
                         self.net.train(False)  # Don't need to track gradients for validation
@@ -171,15 +170,14 @@ class optimizer:
                             bit_xor_2 = np.bitwise_not(np.bitwise_xor(vector_2, v_labels_tf))
                             bit_xor_3 = np.bitwise_not(np.bitwise_xor(vector_3, v_labels_tf))
                             bit_xor_4 = np.bitwise_not(np.bitwise_xor(vector_4, v_labels_tf))
-                            bit_xor_5 = np.bitwise_not(np.bitwise_xor(vector_4, v_labels_tf))
+                            bit_xor_5 = np.bitwise_not(np.bitwise_xor(vector_5, v_labels_tf))
                             running_true_accuracy_1 = running_true_accuracy + bit_xor_1.sum() / len(bit_xor_1)
                             running_true_accuracy_2 = running_true_accuracy + bit_xor_2.sum() / len(bit_xor_2)
                             running_true_accuracy_3 = running_true_accuracy + bit_xor_3.sum() / len(bit_xor_3)
                             running_true_accuracy_4 = running_true_accuracy + bit_xor_4.sum() / len(bit_xor_4)
                             running_true_accuracy_5 = running_true_accuracy + bit_xor_5.sum() / len(bit_xor_5)
                     self.net.train(True)  # Turn gradients back on for training
-
-                    avg_loss = running_loss / 9
+                    avg_loss = running_loss / 29
                     avg_vloss = running_vloss / len(self.validation_loader)
                     avg_accuracy_prediction_1 = 100 * (running_true_accuracy_1 / len(self.validation_loader))
                     avg_accuracy_prediction_2 = 100 * (running_true_accuracy_2 / len(self.validation_loader))
@@ -201,11 +199,9 @@ class optimizer:
                     self.avg_accuracy_prediction_4.append(avg_accuracy_prediction_4)
                     self.avg_accuracy_prediction_5.append(avg_accuracy_prediction_5)
                     self.epoch_number.append(epoch)
-
                     writer.flush()
                     running_loss = 0.0
-            # Save the best model based on validation loss
-            if avg_vloss < best_val_loss:
+            if avg_vloss < best_val_loss: # Save the best model based on validation loss
                 best_val_loss = avg_vloss
                 torch.save(self.net.state_dict(), 'best_model_' + self.name + '.pt')
                 counter = 0
