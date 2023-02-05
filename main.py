@@ -81,7 +81,7 @@ if __name__ == "__main__":
         training_class = training.optimizer(opts.model_name, n_epochs, train_loader, val_loader, test_loader, SEQ_LEN, features_count, NN_SIZE,
                                             opts.learn_rate, opts.batch_size)
         training_class.main_training_loop()
-
+        print("Finished training model " + opts.model_name + "_" + str(opts.batch_size))
     else:
         print("finished making a data set.")
 
