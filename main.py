@@ -79,7 +79,7 @@ if __name__ == "__main__":
         test_loader = DataLoader(test_data_set, batch_size=opts.batch_size, shuffle=False, drop_last=True)
         features_count = X_train_seq.shape[2]
         training_class = training.optimizer(opts.model_name, n_epochs, train_loader, val_loader, test_loader, SEQ_LEN, features_count, NN_SIZE,
-                                            opts.learn_rate)
+                                            opts.learn_rate, opts.batch_size)
         training_class.main_training_loop()
 
     else:

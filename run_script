@@ -25,7 +25,7 @@
 #python3 main.py -nd 450 -ndtrain 100 -seq 64 -nnsize 64 -nnlayers 2 -balanced 1 -bs 256 -tt 0 -name seq_64_450 -mso 0 -lff 0
 #python3 main.py -nd 450 -ndtrain 100 -seq 128 -nnsize 128 -nnlayers 2 -balanced 1 -bs 256 -tt 0 -name seq_128_450 -mso 0 -lff 0
 
-#20,50,150,250,350,450 drives, sequence 32
+#20,50,150,250,350,450 drives, sequence 32 batch size 128
 python3 main.py -nd 20 -ndtrain 100 -seq 32 -nnsize 32 -nnlayers 2 -balanced 1 -bs 128 -tt 1 -name seq_32_20 -mso 0 -lff 1
 python3 main.py -nd 50 -ndtrain 100 -seq 32 -nnsize 32 -nnlayers 2 -balanced 1 -bs 128 -tt 1 -name seq_32_50 -mso 0 -lff 1
 python3 main.py -nd 150 -ndtrain 100 -seq 32 -nnsize 32 -nnlayers 2 -balanced 1 -bs 128 -tt 1 -name seq_32_150 -mso 0 -lff 1
@@ -33,13 +33,29 @@ python3 main.py -nd 250 -ndtrain 100 -seq 32 -nnsize 32 -nnlayers 2 -balanced 1 
 python3 main.py -nd 350 -ndtrain 100 -seq 32 -nnsize 32 -nnlayers 2 -balanced 1 -bs 128 -tt 1 -name seq_32_350 -mso 0 -lff 1
 python3 main.py -nd 450 -ndtrain 100 -seq 32 -nnsize 32 -nnlayers 2 -balanced 1 -bs 128 -tt 1 -name seq_32_450 -mso 0 -lff 1
 
-#20,50,150,250,350,450 drives, sequence 64
+#20,50,150,250,350,450 drives, sequence 32 batch size 64
+python3 main.py -nd 20 -ndtrain 100 -seq 32 -nnsize 32 -nnlayers 2 -balanced 1 -bs 64 -tt 1 -name seq_32_20 -mso 0 -lff 1
+python3 main.py -nd 50 -ndtrain 100 -seq 32 -nnsize 32 -nnlayers 2 -balanced 1 -bs 64 -tt 1 -name seq_32_50 -mso 0 -lff 1
+python3 main.py -nd 150 -ndtrain 100 -seq 32 -nnsize 32 -nnlayers 2 -balanced 1 -bs 64 -tt 1 -name seq_32_150 -mso 0 -lff 1
+python3 main.py -nd 250 -ndtrain 100 -seq 32 -nnsize 32 -nnlayers 2 -balanced 1 -bs 64 -tt 1 -name seq_32_250 -mso 0 -lff 1
+python3 main.py -nd 350 -ndtrain 100 -seq 32 -nnsize 32 -nnlayers 2 -balanced 1 -bs 64 -tt 1 -name seq_32_350 -mso 0 -lff 1
+python3 main.py -nd 450 -ndtrain 100 -seq 32 -nnsize 32 -nnlayers 2 -balanced 1 -bs 64 -tt 1 -name seq_32_450 -mso 0 -lff 1
+
+#20,50,150,250,350,450 drives, sequence 64, batch size 128
 python3 main.py -nd 20 -ndtrain 100 -seq 64 -nnsize 64 -nnlayers 2 -balanced 1 -bs 128 -tt 1 -name seq_64_20 -mso 0 -lff 1
 python3 main.py -nd 50 -ndtrain 100 -seq 64 -nnsize 64 -nnlayers 2 -balanced 1 -bs 128 -tt 1 -name seq_64_50 -mso 0 -lff 1
 python3 main.py -nd 150 -ndtrain 100 -seq 64 -nnsize 64 -nnlayers 2 -balanced 1 -bs 128 -tt 1 -name seq_64_150 -mso 0 -lff 1
 python3 main.py -nd 250 -ndtrain 100 -seq 64 -nnsize 64 -nnlayers 2 -balanced 1 -bs 128 -tt 1 -name seq_64_250 -mso 0 -lff 1
 python3 main.py -nd 350 -ndtrain 100 -seq 64 -nnsize 64 -nnlayers 2 -balanced 1 -bs 128 -tt 1 -name seq_64_350 -mso 0 -lff 1
 python3 main.py -nd 450 -ndtrain 100 -seq 64 -nnsize 64 -nnlayers 2 -balanced 1 -bs 128 -tt 1 -name seq_64_450 -mso 0 -lff 1
+
+#20,50,150,250,350,450 drives, sequence 64, batch size 64
+python3 main.py -nd 20 -ndtrain 100 -seq 64 -nnsize 64 -nnlayers 2 -balanced 1 -bs 64 -tt 1 -name seq_64_20 -mso 0 -lff 1
+python3 main.py -nd 50 -ndtrain 100 -seq 64 -nnsize 64 -nnlayers 2 -balanced 1 -bs 64 -tt 1 -name seq_64_50 -mso 0 -lff 1
+python3 main.py -nd 150 -ndtrain 100 -seq 64 -nnsize 64 -nnlayers 2 -balanced 1 -bs 64 -tt 1 -name seq_64_150 -mso 0 -lff 1
+python3 main.py -nd 250 -ndtrain 100 -seq 64 -nnsize 64 -nnlayers 2 -balanced 1 -bs 64 -tt 1 -name seq_64_250 -mso 0 -lff 1
+python3 main.py -nd 350 -ndtrain 100 -seq 64 -nnsize 64 -nnlayers 2 -balanced 1 -bs 64 -tt 1 -name seq_64_350 -mso 0 -lff 1
+python3 main.py -nd 450 -ndtrain 100 -seq 64 -nnsize 64 -nnlayers 2 -balanced 1 -bs 64 -tt 1 -name seq_64_450 -mso 0 -lff 1
 
 #20,50,150,250,350,450 drives, sequence 128
 python3 main.py -nd 20 -ndtrain 100 -seq 128 -nnsize 128 -nnlayers 2 -balanced 1 -bs 128 -tt 1 -name seq_128_20 -mso 0 -lff 1
@@ -49,5 +65,11 @@ python3 main.py -nd 250 -ndtrain 100 -seq 128 -nnsize 128 -nnlayers 2 -balanced 
 python3 main.py -nd 350 -ndtrain 100 -seq 128 -nnsize 128 -nnlayers 2 -balanced 1 -bs 128 -tt 1 -name seq_128_350 -mso 0 -lff 1
 python3 main.py -nd 450 -ndtrain 100 -seq 128 -nnsize 128 -nnlayers 2 -balanced 1 -bs 128 -tt 1 -name seq_128_450 -mso 0 -lff 1
 
-
+#20,50,150,250,350,450 drives, sequence 128, batch size 64
+python3 main.py -nd 20 -ndtrain 100 -seq 128 -nnsize 128 -nnlayers 2 -balanced 1 -bs 64 -tt 1 -name seq_128_20 -mso 0 -lff 1
+python3 main.py -nd 50 -ndtrain 100 -seq 128 -nnsize 128 -nnlayers 2 -balanced 1 -bs 64 -tt 1 -name seq_128_50 -mso 0 -lff 1
+python3 main.py -nd 150 -ndtrain 100 -seq 128 -nnsize 128 -nnlayers 2 -balanced 1 -bs 64 -tt 1 -name seq_128_150 -mso 0 -lff 1
+python3 main.py -nd 250 -ndtrain 100 -seq 128 -nnsize 128 -nnlayers 2 -balanced 1 -bs 64 -tt 1 -name seq_128_250 -mso 0 -lff 1
+python3 main.py -nd 350 -ndtrain 100 -seq 128 -nnsize 128 -nnlayers 2 -balanced 1 -bs 64 -tt 1 -name seq_128_350 -mso 0 -lff 1
+python3 main.py -nd 450 -ndtrain 100 -seq 128 -nnsize 128 -nnlayers 2 -balanced 1 -bs 64 -tt 1 -name seq_128_450 -mso 0 -lff 1
 #

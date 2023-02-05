@@ -100,7 +100,7 @@ def prepare_data_sets(data_frame, SEQ_LEN, balanced, name):
 
 
 class optimizer:
-    def __init__(self, name, epochs, training_loader, validation_loader, test_loader, seq_len, number_of_features, hidden_size, learning_rate):
+    def __init__(self, name, epochs, training_loader, validation_loader, test_loader, seq_len, number_of_features, hidden_size, learning_rate, batch_size):
         self.name = name
         self.train_loader = training_loader
         self.epochs = epochs
@@ -119,7 +119,7 @@ class optimizer:
         self.avg_accuracy_prediction_5 = []
         self.epoch_number = []
         self.time_diff = 0
-
+        self.batch_size = batch_size
     def write_to_file(self):
         df = pd.DataFrame({'avg_validation_loss': self.average_loss_validation,
                            'avg_training_loss': self.average_loss_training,
@@ -139,7 +139,7 @@ class optimizer:
         writer = SummaryWriter('models/' + self.name)
         best_val_loss = float('inf')
         counter = 0
-        patience = 30
+        patience = 20
         # To view, start TensorBoard on the command line with:
         #   tensorboard --logdir=model/sseq_32_20
         # ...and open a browser tab to http://localhost:6006/
@@ -207,7 +207,7 @@ class optimizer:
                     running_loss = 0.0
             if avg_vloss < best_val_loss:  # Save the best model based on validation loss
                 best_val_loss = avg_vloss
-                torch.save(self.net.state_dict(), 'best_model_' + self.name + '.pt')
+                torch.save(self.net.state_dict(), 'best_model_' + self.name + str(self.batch_size) + '.pt')
                 counter = 0
             else:
                 counter = counter + 1
