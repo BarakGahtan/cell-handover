@@ -44,12 +44,12 @@ if __name__ == "__main__":
         X_train_seq, y_train_label, x_val_seq, y_val_label, x_test_seq, y_test_label = \
             prepare_data_sets(data_set_concat_train, SEQ_LEN=SEQ_LEN, balanced=to_balance, name=opts.model_name)
     else:
-        X_train_seq = training.make_Tensor(np.array(pickle.load(open('x_train_balanced_64_all_imei.pkl', "rb"))))
-        y_train_label = training.make_Tensor(np.array(pickle.load(open('y_train_balanced_64_all_imei.pkl', "rb"))))
-        x_val_seq = training.make_Tensor(np.array(pickle.load(open('X_val_balanced_64_all_imei.pkl', "rb"))))
-        y_val_label = training.make_Tensor(np.array(pickle.load(open('y_val_balanced_64_all_imei.pkl', "rb"))))
-        x_test_seq = training.make_Tensor(np.array(pickle.load(open('X_test_balanced_64_all_imei.pkl', "rb"))))
-        y_test_label = training.make_Tensor(np.array(pickle.load(open('y_test_balanced_64_all_imei.pkl', "rb"))))
+        X_train_seq = training.make_Tensor(np.array(pickle.load(open('x_train_' + opts.name + '.pkl', "rb"))))
+        y_train_label = training.make_Tensor(np.array(pickle.load(open('y_train_' + opts.name + '.pkl', "rb"))))
+        x_val_seq = training.make_Tensor(np.array(pickle.load(open('X_val_' + opts.name + '.pkl', "rb"))))
+        y_val_label = training.make_Tensor(np.array(pickle.load(open('y_val_' + opts.name + '.pkl', "rb"))))
+        x_test_seq = training.make_Tensor(np.array(pickle.load(open('X_test_' + opts.name + '.pkl', "rb"))))
+        y_test_label = training.make_Tensor(np.array(pickle.load(open('y_test_' + opts.name + '.pkl', "rb"))))
 
     # seq = pickle.load(open('x_data_eli1.pkl', "rb"))
     # y_data = pickle.load(open('y_data_eli1.pkl', "rb"))
@@ -81,6 +81,7 @@ if __name__ == "__main__":
         training_class = training.optimizer(opts.name, n_epochs, train_loader, val_loader, test_loader, SEQ_LEN, features_count, NN_SIZE,
                                             opts.learn_rate)
         training_class.main_training_loop()
+
     else:
         print("finished making a data set.")
 
