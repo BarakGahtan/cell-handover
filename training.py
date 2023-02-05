@@ -135,7 +135,8 @@ class optimizer:
         optim_to_learn = optim.Adam(self.net.parameters(), lr=self.learn_rate)
         writer = SummaryWriter('models/' + self.name)
         best_val_loss = float('inf')
-        counter, patience = 0, 15
+        counter, patience = 0
+        patience = 30
         # To view, start TensorBoard on the command line with:
         #   tensorboard --logdir=model/sseq_32_20
         # ...and open a browser tab to http://localhost:6006/
@@ -206,13 +207,13 @@ class optimizer:
             # Save the best model based on validation loss
             if avg_vloss < best_val_loss:
                 best_val_loss = avg_vloss
-                torch.save(self.net.state_dict(), 'best_model_epoc_' + str(epoch) + '_' + self.name + '.pt')
+                torch.save(self.net.state_dict(), 'best_model_' + self.name + '.pt')
                 counter = 0
             else:
                 counter = counter + 1
             # Stop training if the validation loss hasn't improved for a certain number of epochs (patience)
             if counter >= patience:
-                print("Early stopping at epoch {}".format(epoch))
+                print("Early stopping at epoch {} model name {}".format(epoch, self.name))
                 break
         self.write_to_file()
         torch.save(self.net.state_dict(), self.name + '.pt')
