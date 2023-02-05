@@ -154,7 +154,7 @@ class optimizer:
                 loss.backward()
                 optim_to_learn.step()
                 running_loss += loss.item()
-                if i % 30 == 29:
+                if i % 10 == 9:
                     print('Batch {}'.format(i + 1))
                     running_vloss, running_true_accuracy = 0.0, 0.0
                     with torch.no_grad():
@@ -181,7 +181,7 @@ class optimizer:
                             running_true_accuracy_4 = running_true_accuracy + bit_xor_4.sum() / len(bit_xor_4)
                             running_true_accuracy_5 = running_true_accuracy + bit_xor_5.sum() / len(bit_xor_5)
                     self.net.train(True)  # Turn gradients back on for training
-                    avg_loss = running_loss / 29
+                    avg_loss = running_loss / 9
                     avg_vloss = running_vloss / len(self.validation_loader)
                     avg_accuracy_prediction_1 = 100 * (running_true_accuracy_1 / len(self.validation_loader))
                     avg_accuracy_prediction_2 = 100 * (running_true_accuracy_2 / len(self.validation_loader))
@@ -215,6 +215,8 @@ class optimizer:
             if counter >= patience:
                 end_time = time.time()
                 self.time_diff = end_time - start_time
+                minutes, seconds = divmod(self.time_diff, 60)
+                self.time_diff = f"{int(minutes)}m {int(seconds)}s"
                 print("Early stopping at epoch {} model name {}".format(epoch, self.name))
                 break
 
