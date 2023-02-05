@@ -181,11 +181,11 @@ class optimizer:
 
                     avg_loss = running_loss / 9
                     avg_vloss = running_vloss / len(self.validation_loader)
-                    avg_accuracy_prediction_1 = running_true_accuracy_1 / len(self.validation_loader)
-                    avg_accuracy_prediction_2 = running_true_accuracy_2 / len(self.validation_loader)
-                    avg_accuracy_prediction_3 = running_true_accuracy_3 / len(self.validation_loader)
-                    avg_accuracy_prediction_4 = running_true_accuracy_4 / len(self.validation_loader)
-                    avg_accuracy_prediction_5 = running_true_accuracy_5 / len(self.validation_loader)
+                    avg_accuracy_prediction_1 = 100 * (running_true_accuracy_1 / len(self.validation_loader))
+                    avg_accuracy_prediction_2 = 100 * (running_true_accuracy_2 / len(self.validation_loader))
+                    avg_accuracy_prediction_3 = 100 * (running_true_accuracy_3 / len(self.validation_loader))
+                    avg_accuracy_prediction_4 = 100 * (running_true_accuracy_4 / len(self.validation_loader))
+                    avg_accuracy_prediction_5 = 100 * (running_true_accuracy_5 / len(self.validation_loader))
                     # Log the running loss averaged per batch
                     writer.add_scalars('Training vs. Validation Loss', {'Training': avg_loss, 'Validation': avg_vloss}, epoch + 1)
                     writer.add_scalars('True accuracy', {'accuracy-0.5': avg_accuracy_prediction_1,
