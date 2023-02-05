@@ -2,6 +2,7 @@
 import copy
 import os
 import pickle
+import time
 from datetime import datetime
 from random import choice
 import random
@@ -117,6 +118,7 @@ class optimizer:
         self.avg_accuracy_prediction_4 = []
         self.avg_accuracy_prediction_5 = []
         self.epoch_number = []
+        self.time_diff = 0
 
     def write_to_file(self):
         df = pd.DataFrame({'avg_validation_loss': self.average_loss_validation,
@@ -126,7 +128,8 @@ class optimizer:
                            'accuracy_06': self.avg_accuracy_prediction_3,
                            'accuracy_065': self.avg_accuracy_prediction_4,
                            'accuracy_07': self.avg_accuracy_prediction_5,
-                           'epochs': self.epoch_number})
+                           'epochs': self.epoch_number,
+                           'training time' : self.time_diff})
         df.to_csv(self.name + '.csv', index=False)
 
     def main_training_loop(self):
@@ -140,6 +143,7 @@ class optimizer:
         # To view, start TensorBoard on the command line with:
         #   tensorboard --logdir=model/sseq_32_20
         # ...and open a browser tab to http://localhost:6006/
+        start_time = time.time()
         for epoch in range(self.epochs):  # loop over the dataset multiple times
             running_loss = 0.0
             for i, data in enumerate(self.train_loader, 0):
@@ -201,7 +205,7 @@ class optimizer:
                     self.epoch_number.append(epoch)
                     writer.flush()
                     running_loss = 0.0
-            if avg_vloss < best_val_loss: # Save the best model based on validation loss
+            if avg_vloss < best_val_loss:  # Save the best model based on validation loss
                 best_val_loss = avg_vloss
                 torch.save(self.net.state_dict(), 'best_model_' + self.name + '.pt')
                 counter = 0
@@ -209,8 +213,11 @@ class optimizer:
                 counter = counter + 1
             # Stop training if the validation loss hasn't improved for a certain number of epochs (patience)
             if counter >= patience:
+                end_time = time.time()
+                self.time_diff = end_time - start_time
                 print("Early stopping at epoch {} model name {}".format(epoch, self.name))
                 break
+
         self.write_to_file()
         torch.save(self.net.state_dict(), self.name + '.pt')
         print('Finished Training')
