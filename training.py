@@ -104,7 +104,7 @@ class optimizer:
         self.name = name
         self.train_loader = training_loader
         self.epochs = epochs
-        self.test_loader = validation_loader
+        self.validation_loader = validation_loader
         self.test_loader = test_loader
         self.sequence_len = seq_len
         self.number_of_features = number_of_features
@@ -137,15 +137,18 @@ class optimizer:
                            'accuracy_07_val': self.avg_accuracy_prediction_5,
                            'epochs': self.epoch_number,
                            'training time': self.time_diff,
-                           'tl_samples': len(self.train_loader),
-                           'vl_samples': len(self.test_loader),
-                           'testl_samples': len(self.test_loader),
+                           'tl_samples_batches_count': len(self.train_loader),
+                           'tl_sample_count' : len(self.train_loader.dataset),
+                           'vl_samples_batches_count': len(self.validation_loader),
+                           'vl_sample_count': len(self.validation_loader.dataset),
+                           'testl_samples_batches_count': len(self.test_loader),
+                           'testl_sample_count': len(self.test_loader.dataset),
                            'avg_test_loss': self.average_loss_test,
                            'accuracy_05_test': self.avg_accuracy_prediction_1_test,
                            'accuracy_055_test': self.avg_accuracy_prediction_2_test,
                            'accuracy_06_test': self.avg_accuracy_prediction_3_test,
                            'accuracy_065_test': self.avg_accuracy_prediction_4_test,
-                           'accuracy_07_test': self.avg_accuracy_prediction_5_test,},
+                           'accuracy_07_test': self.avg_accuracy_prediction_5_test},
                           )
         df.to_csv(self.name +'_batch_size_' + str(self.batch_size) + '.csv', index=False)
 
@@ -235,8 +238,7 @@ class optimizer:
                 self.time_diff = f"{int(minutes)}m {int(seconds)}s"
                 print("Early stopping at epoch {} model name {}".format(epoch, self.name))
                 break
-
-        torch.save(self.net.state_dict(), self.name + '.pt')
+        torch.save(self.net.state_dict(), self.name + '_batch_size' + str(self.batch_size) + '.pt')
         print('Finished Training')
         self.writer.flush()
 
