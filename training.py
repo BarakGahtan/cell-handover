@@ -104,33 +104,50 @@ class optimizer:
         self.name = name
         self.train_loader = training_loader
         self.epochs = epochs
-        self.validation_loader = validation_loader
+        self.test_loader = validation_loader
         self.test_loader = test_loader
         self.sequence_len = seq_len
         self.number_of_features = number_of_features
         self.hidden_size = hidden_size
         self.net = architecture.cnn_lstm_hybrid(features=number_of_features)
         self.learn_rate = learning_rate
-        self.average_loss_validation, self.average_loss_training = [], []
+        self.average_loss_validation, self.average_loss_training, self.average_loss_test = [], [], []
         self.avg_accuracy_prediction_1 = []
         self.avg_accuracy_prediction_2 = []
         self.avg_accuracy_prediction_3 = []
         self.avg_accuracy_prediction_4 = []
         self.avg_accuracy_prediction_5 = []
+        self.avg_accuracy_prediction_1_test = []
+        self.avg_accuracy_prediction_2_test = []
+        self.avg_accuracy_prediction_3_test = []
+        self.avg_accuracy_prediction_4_test = []
+        self.avg_accuracy_prediction_5_test = []
         self.epoch_number = []
         self.time_diff = 0
         self.batch_size = batch_size
+        self.writer = SummaryWriter('models/' + self.name + '_batch_size_' + str(self.batch_size))
+
     def write_to_file(self):
         df = pd.DataFrame({'avg_validation_loss': self.average_loss_validation,
                            'avg_training_loss': self.average_loss_training,
-                           'accuracy_05': self.avg_accuracy_prediction_1,
-                           'accuracy_055': self.avg_accuracy_prediction_2,
-                           'accuracy_06': self.avg_accuracy_prediction_3,
-                           'accuracy_065': self.avg_accuracy_prediction_4,
-                           'accuracy_07': self.avg_accuracy_prediction_5,
+                           'accuracy_05_val': self.avg_accuracy_prediction_1,
+                           'accuracy_055_val': self.avg_accuracy_prediction_2,
+                           'accuracy_06_val': self.avg_accuracy_prediction_3,
+                           'accuracy_065_val': self.avg_accuracy_prediction_4,
+                           'accuracy_07_val': self.avg_accuracy_prediction_5,
                            'epochs': self.epoch_number,
-                           'training time' : self.time_diff})
-        df.to_csv(self.name + '.csv', index=False)
+                           'training time': self.time_diff,
+                           'tl_samples': len(self.train_loader),
+                           'vl_samples': len(self.test_loader),
+                           'testl_samples': len(self.test_loader),
+                           'avg_test_loss': self.average_loss_test,
+                           'accuracy_05_test': self.avg_accuracy_prediction_1_test,
+                           'accuracy_055_test': self.avg_accuracy_prediction_2_test,
+                           'accuracy_06_test': self.avg_accuracy_prediction_3_test,
+                           'accuracy_065_test': self.avg_accuracy_prediction_4_test,
+                           'accuracy_07_test': self.avg_accuracy_prediction_5_test,},
+                          )
+        df.to_csv(self.name +'_batch_size_' + str(self.batch_size) + '.csv', index=False)
 
     def main_training_loop(self):
         avg_vloss = float('inf')
@@ -139,7 +156,6 @@ class optimizer:
         best_val_loss = float('inf')
         counter = 0
         patience = 20
-        writer = SummaryWriter('models/' + self.name + '_batch_size_' + str(self.batch_size))
         # To view, start TensorBoard on the command line with:
         #   tensorboard --logdir=model/sseq_32_20
         # ...and open a browser tab to http://localhost:6006/
@@ -159,7 +175,7 @@ class optimizer:
                     running_vloss, running_true_accuracy = 0.0, 0.0
                     with torch.no_grad():
                         self.net.train(False)  # Don't need to track gradients for validation
-                        for j, vdata in enumerate(self.validation_loader, 0):
+                        for j, vdata in enumerate(self.test_loader, 0):
                             vinputs, vlabels = vdata
                             voutputs = self.net(vinputs)
                             vloss = criterion(voutputs.squeeze(1), vlabels)
@@ -182,15 +198,15 @@ class optimizer:
                             running_true_accuracy_5 = running_true_accuracy + bit_xor_5.sum() / len(bit_xor_5)
                     self.net.train(True)  # Turn gradients back on for training
                     avg_loss = running_loss / 9
-                    avg_vloss = running_vloss / len(self.validation_loader)
-                    avg_accuracy_prediction_1 = 100 * (running_true_accuracy_1 / len(self.validation_loader))
-                    avg_accuracy_prediction_2 = 100 * (running_true_accuracy_2 / len(self.validation_loader))
-                    avg_accuracy_prediction_3 = 100 * (running_true_accuracy_3 / len(self.validation_loader))
-                    avg_accuracy_prediction_4 = 100 * (running_true_accuracy_4 / len(self.validation_loader))
-                    avg_accuracy_prediction_5 = 100 * (running_true_accuracy_5 / len(self.validation_loader))
+                    avg_vloss = running_vloss / len(self.test_loader)
+                    avg_accuracy_prediction_1 = 100 * (running_true_accuracy_1 / len(self.test_loader))
+                    avg_accuracy_prediction_2 = 100 * (running_true_accuracy_2 / len(self.test_loader))
+                    avg_accuracy_prediction_3 = 100 * (running_true_accuracy_3 / len(self.test_loader))
+                    avg_accuracy_prediction_4 = 100 * (running_true_accuracy_4 / len(self.test_loader))
+                    avg_accuracy_prediction_5 = 100 * (running_true_accuracy_5 / len(self.test_loader))
                     # Log the running loss averaged per batch
-                    writer.add_scalars('Training vs. Validation Loss', {'Training': avg_loss, 'Validation': avg_vloss}, epoch + 1)
-                    writer.add_scalars('True accuracy', {'accuracy-0.5': avg_accuracy_prediction_1,
+                    self.writer.add_scalars('Training vs. Validation Loss', {'Training': avg_loss, 'Validation': avg_vloss}, epoch + 1)
+                    self.writer.add_scalars('True accuracy', {'accuracy-0.5': avg_accuracy_prediction_1,
                                                          'accuracy-0.55': avg_accuracy_prediction_2,
                                                          'accuracy-0.6': avg_accuracy_prediction_3,
                                                          'accuracy-0.65': avg_accuracy_prediction_4,
@@ -203,11 +219,11 @@ class optimizer:
                     self.avg_accuracy_prediction_4.append(avg_accuracy_prediction_4)
                     self.avg_accuracy_prediction_5.append(avg_accuracy_prediction_5)
                     self.epoch_number.append(epoch)
-                    writer.flush()
+                    self.writer.flush()
                     running_loss = 0.0
             if avg_vloss < best_val_loss:  # Save the best model based on validation loss
                 best_val_loss = avg_vloss
-                torch.save(self.net.state_dict(), 'best_model_' + self.name + str(self.batch_size) + '.pt')
+                torch.save(self.net.state_dict(), 'best_model_' + self.name + '_' + str(self.batch_size) + '.pt')
                 counter = 0
             else:
                 counter = counter + 1
@@ -220,10 +236,56 @@ class optimizer:
                 print("Early stopping at epoch {} model name {}".format(epoch, self.name))
                 break
 
-        self.write_to_file()
         torch.save(self.net.state_dict(), self.name + '.pt')
         print('Finished Training')
-        writer.flush()
+        self.writer.flush()
 
     def test_model(self):
-        x = 5
+        criterion = torch.nn.BCELoss()
+        running_tloss, running_true_accuracy = 0.0, 0.0
+        with torch.no_grad():
+            self.net.train(False)  # Don't need to track gradients for validation
+            for j, tdata in enumerate(self.test_loader, 0):
+                tinputs, tlabels = tdata
+                toutputs = self.net(tinputs)
+                tloss = criterion(toutputs.squeeze(1), tlabels)
+                running_tloss += tloss.item()
+                vector_1 = np.where(toutputs.numpy().squeeze(1) > 0.5, True, False)
+                vector_2 = np.where(toutputs.numpy().squeeze(1) > 0.55, True, False)
+                vector_3 = np.where(toutputs.numpy().squeeze(1) > 0.6, True, False)
+                vector_4 = np.where(toutputs.numpy().squeeze(1) > 0.65, True, False)
+                vector_5 = np.where(toutputs.numpy().squeeze(1) > 0.7, True, False)
+                v_labels_tf = np.where(tlabels.numpy() > 0.9, True, False)
+                bit_xor_1 = np.bitwise_not(np.bitwise_xor(vector_1, v_labels_tf))
+                bit_xor_2 = np.bitwise_not(np.bitwise_xor(vector_2, v_labels_tf))
+                bit_xor_3 = np.bitwise_not(np.bitwise_xor(vector_3, v_labels_tf))
+                bit_xor_4 = np.bitwise_not(np.bitwise_xor(vector_4, v_labels_tf))
+                bit_xor_5 = np.bitwise_not(np.bitwise_xor(vector_5, v_labels_tf))
+                running_true_accuracy_1 = running_true_accuracy + bit_xor_1.sum() / len(bit_xor_1)
+                running_true_accuracy_2 = running_true_accuracy + bit_xor_2.sum() / len(bit_xor_2)
+                running_true_accuracy_3 = running_true_accuracy + bit_xor_3.sum() / len(bit_xor_3)
+                running_true_accuracy_4 = running_true_accuracy + bit_xor_4.sum() / len(bit_xor_4)
+                running_true_accuracy_5 = running_true_accuracy + bit_xor_5.sum() / len(bit_xor_5)
+            avg_tloss = running_tloss / len(self.test_loader)
+            avg_accuracy_prediction_1 = 100 * (running_true_accuracy_1 / len(self.test_loader))
+            avg_accuracy_prediction_2 = 100 * (running_true_accuracy_2 / len(self.test_loader))
+            avg_accuracy_prediction_3 = 100 * (running_true_accuracy_3 / len(self.test_loader))
+            avg_accuracy_prediction_4 = 100 * (running_true_accuracy_4 / len(self.test_loader))
+            avg_accuracy_prediction_5 = 100 * (running_true_accuracy_5 / len(self.test_loader))
+            # Log the running loss averaged per batch
+            self.writer.add_scalars('Test set', {'Test loss': avg_tloss}, j + 1)
+            self.writer.add_scalars('True accuracy Test set', {'accuracy-0.5': avg_accuracy_prediction_1,
+                                                 'accuracy-0.55': avg_accuracy_prediction_2,
+                                                 'accuracy-0.6': avg_accuracy_prediction_3,
+                                                 'accuracy-0.65': avg_accuracy_prediction_4,
+                                                 'accuracy-0.7': avg_accuracy_prediction_5}, j + 1)
+        self.average_loss_test.append(avg_tloss)
+        self.avg_accuracy_prediction_1_test.append(avg_accuracy_prediction_1)
+        self.avg_accuracy_prediction_2_test.append(avg_accuracy_prediction_2)
+        self.avg_accuracy_prediction_3_test.append(avg_accuracy_prediction_3)
+        self.avg_accuracy_prediction_4_test.append(avg_accuracy_prediction_4)
+        self.avg_accuracy_prediction_5_test.append(avg_accuracy_prediction_5)
+        self.writer.flush()
+        self.write_to_file()
+
+

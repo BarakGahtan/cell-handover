@@ -82,6 +82,8 @@ if __name__ == "__main__":
                                             opts.learn_rate, opts.batch_size)
         training_class.main_training_loop()
         print("Finished training model " + opts.model_name + "_" + str(opts.batch_size))
+        training_class.test_model()
+        print("Finished testing model " + opts.model_name + "_" + str(opts.batch_size))
     else:
         print("finished making a data set.")
 
