@@ -126,7 +126,7 @@ class optimizer:
         self.epoch_number = []
         self.time_diff = 0
         self.batch_size = batch_size
-        self.writer = SummaryWriter('models/' + self.name + '_batch_size_' + str(self.batch_size))
+        self.writer = SummaryWriter('models_imei_1/' + self.name + '_batch_size_' + str(self.batch_size))
 
     def write_to_file(self):
         df_validation = pd.DataFrame({'avg_validation_loss': self.average_loss_validation,
@@ -162,7 +162,7 @@ class optimizer:
         optim_to_learn = optim.Adam(self.net.parameters(), lr=self.learn_rate)
         best_val_loss = float('inf')
         counter = 0
-        patience = 20
+        patience = 15
         # To view, start TensorBoard on the command line with:
         #   tensorboard --logdir=model/sseq_32_20
         # ...and open a browser tab to http://localhost:6006/

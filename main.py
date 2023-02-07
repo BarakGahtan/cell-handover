@@ -69,7 +69,6 @@ if __name__ == "__main__":
     # y_val_label = training.make_Tensor(y_val)
     # x_test_seq = training.make_Tensor(X_test)
     # y_test_label = training.make_Tensor(y_test)
-
     if opts.to_train == 1:
         train_data_set = TensorDataset(X_train_seq, y_train_label)
         train_loader = DataLoader(train_data_set, batch_size=opts.batch_size, shuffle=False, drop_last=True)

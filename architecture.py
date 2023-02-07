@@ -11,19 +11,24 @@ from torch.nn import LogSoftmax
 class cnn_lstm_hybrid(nn.Module):
     def __init__(self, features):
         super(cnn_lstm_hybrid, self).__init__()
-        self.conv1d_1 = nn.Conv1d(in_channels=features,
-                                  out_channels=32,
+        self.conv1d_1 = nn.Sequential(
+            nn.Conv1d(in_channels=features,
+                                  out_channels=64,
                                   kernel_size=3,
                                   stride=1,
-                                  padding=1)
-        self.conv1d_2 = nn.Conv1d(in_channels=32,
-                                  out_channels=64,
+                                  padding=1),
+            nn.ReLU(),
+            nn.MaxPool1d(3),
+        )
+
+        self.conv1d_2 = nn.Conv1d(in_channels=64,
+                                  out_channels=128,
                                   kernel_size=3,
                                   stride=1,
                                   padding=1)
 
-        self.lstm = nn.LSTM(input_size=64,
-                            hidden_size=128,
+        self.lstm = nn.LSTM(input_size=128,
+                            hidden_size=256,
                             num_layers=1,
                             bias=True,
                             bidirectional=False,
@@ -31,8 +36,8 @@ class cnn_lstm_hybrid(nn.Module):
 
         self.dropout = nn.Dropout(0.5)
 
-        self.dense1 = nn.Linear(128, 64)
-        self.dense2 = nn.Linear(64, 32)
+        self.dense1 = nn.Linear(256, 128)
+        self.dense2 = nn.Linear(128, 32)
         self.dense3 = nn.Linear(32, 1)
         self.sigmoid = nn.Sigmoid()
     def forward(self, x):
@@ -40,11 +45,11 @@ class cnn_lstm_hybrid(nn.Module):
 
         x = x.transpose(1, 2) # Shape : (B, F, S) => (B, 11, 64)
 
-        x = self.conv1d_1(x)  # Shape : (B, F, S) == (B, C, S) // C = channel => (B, 32, 64)
+        x = self.conv1d_1(x)  # Shape : (B, F, S) == (B, C, S) // C = channel => (B, 64, 128)
 
-        x = self.conv1d_2(x)  # Shape : (B, C, S) => (B, 64, 64)
+        x = self.conv1d_2(x)  # Shape : (B, C, S) => (B, 128, 256)
 
-        x = x.transpose(1, 2) # Shape : (B, S, C) == (B, S, F) => (B, 64, 64)
+        x = x.transpose(1, 2) # Shape : (B, S, C) == (B, S, F) => (B, 256, 128)
 
         self.lstm.flatten_parameters()
 

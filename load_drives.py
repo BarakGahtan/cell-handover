@@ -80,7 +80,7 @@ def normalize_correlate_features(data_dict):
                            'total_bitrate', 'frame_latency_mean', 'qp_mean', 'loss_rate']
         scaler = MinMaxScaler()
         for col in normalized_cols:
-            data_dict[key][col] = pd.DataFrame(scaler.fit_transform(data_dict[key][[col]]))
+              data_dict[key][col] = pd.DataFrame(scaler.fit_transform(data_dict[key][[col]]))
         data_cols = ['longitude', 'latitude', 'rsrp', 'rssi', 'rsrq', 'modem_bandwidth', 'latency_mean',
                      'total_bitrate', 'frame_latency_mean', 'loss_rate', 'qp_mean', 'switchover_global']
         labels_dict[key] = copy.copy(data_dict[key][data_cols])
@@ -146,8 +146,10 @@ def training_sets_init(given_dict, max_switchover):
                         result_dict[key] = pd.concat([result_dict[key], copy.copy(given_dict[k])], ignore_index=True)
                     else:
                         result_dict[key] = copy.copy(given_dict[k])
-
+        x=5
         # highest_imei_key = max(result_dict, key=lambda x: len(result_dict[x]))
         # results_return_key = {highest_imei_key: copy.copy(result_dict[highest_imei_key])}
         # result_dict = results_return_key
+    # imei_key = sorted(result_dict, key=lambda k: len(result_dict[k]), reverse=True)[1]
+    # dict_to_return = {imei_key: result_dict[imei_key]}
     return result_dict
