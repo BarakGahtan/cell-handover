@@ -10,10 +10,16 @@ import seaborn as sns
 
 def init_drives_dataset(pickle_name, DRIVE_NUM, NUM_DRIVES):
     big_df = pd.read_pickle(pickle_name)
+    for i in big_df.columns:
+        # count number of rows with missing values
+        n_miss = big_df[i].isnull().sum()
+        perc = n_miss / big_df.shape[0] * 100
+        print('col: {} is missing: {}'.format(i, perc))
+    x = 5
     drives = [v for k, v in big_df.groupby(['date', 'time'])]
 
     sorted_drives = []
-    for i in range(len(drives)):# Now filter according to imei in each drive
+    for i in range(len(drives)):  # Now filter according to imei in each drive
         sorted_drives.append([v for k, v in drives[i].groupby('imei')])
     # drive_by_modems is list of lists. each drive is a list of lists. the list inside is for diff imeis.
 
@@ -80,7 +86,7 @@ def normalize_correlate_features(data_dict):
                            'total_bitrate', 'frame_latency_mean', 'qp_mean', 'loss_rate']
         scaler = MinMaxScaler()
         for col in normalized_cols:
-              data_dict[key][col] = pd.DataFrame(scaler.fit_transform(data_dict[key][[col]]))
+            data_dict[key][col] = pd.DataFrame(scaler.fit_transform(data_dict[key][[col]]))
         data_cols = ['longitude', 'latitude', 'rsrp', 'rssi', 'rsrq', 'modem_bandwidth', 'latency_mean',
                      'total_bitrate', 'frame_latency_mean', 'loss_rate', 'qp_mean', 'switchover_global']
         labels_dict[key] = copy.copy(data_dict[key][data_cols])
@@ -146,7 +152,7 @@ def training_sets_init(given_dict, max_switchover):
                         result_dict[key] = pd.concat([result_dict[key], copy.copy(given_dict[k])], ignore_index=True)
                     else:
                         result_dict[key] = copy.copy(given_dict[k])
-        x=5
+        x = 5
         # highest_imei_key = max(result_dict, key=lambda x: len(result_dict[x]))
         # results_return_key = {highest_imei_key: copy.copy(result_dict[highest_imei_key])}
         # result_dict = results_return_key

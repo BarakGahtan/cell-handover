@@ -22,18 +22,11 @@ warnings.filterwarnings("ignore")
 if __name__ == "__main__":
     parsed_args = input_parser.Parser()
     opts = parsed_args.parse()
-    NUM_DRIVES = opts.number_drives
-    DRIVE_NUM_TRAIN = opts.starting_drive_train
-    SEQ_LEN = opts.sequence_length
-    NN_SIZE = opts.neuralnetwork_size
-    NN_LAYERS = opts.neuralnetwork_layers
     BALANCED_FLAG = opts.bdataset
-    batch_size = opts.batch_size
-    n_epochs = opts.epoch_number
     to_balance = True
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     if opts.load_from_files == 0:
-        returned_drives_by_imei_dict_train = init_drives_dataset('pickle_rick.pkl', DRIVE_NUM_TRAIN, NUM_DRIVES)
+        returned_drives_by_imei_dict_train = init_drives_dataset('pickle_rick.pkl', opts.starting_drive_train, opts.number_drives)
         # cells_per_drives_in_dataset_train, cells_dict_train = get_cells_per_drive_in_dataset(returned_drives_by_imei_dict_train)
         drives_by_imei_dict_train = prepare_switchover_col(returned_drives_by_imei_dict_train)
         training_data = training_sets_init(drives_by_imei_dict_train, opts.max_switch_over)
@@ -42,7 +35,7 @@ if __name__ == "__main__":
         data_set_concat_train = pd.concat(correlated_data_dict_train, axis=0).reset_index()
         data_set_concat_train.drop(["level_0", "level_1"], axis=1, inplace=True)
         X_train_seq, y_train_label, x_val_seq, y_val_label, x_test_seq, y_test_label = \
-            prepare_data_sets(data_set_concat_train, SEQ_LEN=SEQ_LEN, balanced=to_balance, name=opts.model_name)
+            prepare_data_sets(data_set_concat_train, SEQ_LEN=opts.sequence_length, balanced=to_balance, name=opts.model_name)
     else:
         X_train_seq = training.make_Tensor(np.array(pickle.load(open('datasets/x_train_' + opts.model_name + '.pkl', "rb"))))
         y_train_label = training.make_Tensor(np.array(pickle.load(open('datasets/y_train_' + opts.model_name + '.pkl', "rb"))))
@@ -77,8 +70,8 @@ if __name__ == "__main__":
         test_data_set = TensorDataset(x_test_seq, y_test_label)
         test_loader = DataLoader(test_data_set, batch_size=opts.batch_size, shuffle=False, drop_last=True)
         features_count = X_train_seq.shape[2]
-        training_class = training.optimizer(opts.model_name, n_epochs, train_loader, val_loader, test_loader, SEQ_LEN, features_count, NN_SIZE,
-                                            opts.learn_rate, opts.batch_size)
+        training_class = training.optimizer(opts.model_name, opts.epoch_number, train_loader, val_loader, test_loader, opts.sequence_length,
+                                            features_count, opts.neuralnetwork_size, opts.learn_rate, opts.batch_size)
         training_class.main_training_loop()
         print("Finished training model " + opts.model_name + "_" + str(opts.batch_size))
         training_class.test_model()

@@ -12,7 +12,6 @@ import torch
 from matplotlib import pyplot as plt
 from torch import optim
 from torch.utils.tensorboard import SummaryWriter
-from tqdm import tqdm_notebook as tqdm
 
 import architecture
 from load_drives import create_seq
@@ -93,7 +92,7 @@ def prepare_data_sets(data_frame, SEQ_LEN, balanced, name):
     pickle.dump(X_test, open('X_test_' + name + '.pkl', "wb"))
     pickle.dump(y_test, open('y_test_' + name + '.pkl', "wb"))
     return make_Tensor(x_train), make_Tensor(y_train), make_Tensor(X_val), make_Tensor(y_val), make_Tensor(X_test), \
-        make_Tensor(y_test)
+           make_Tensor(y_test)
     # return make_Tensor(x_train), make_Tensor(y_train), make_Tensor(X_val), make_Tensor(y_val), make_Tensor(X_test), \
     #     make_Tensor(y_test)
     # return x_train, y_train, X_val, y_val, X_test, y_test
@@ -188,42 +187,30 @@ class optimizer:
                             vloss = criterion(voutputs.squeeze(1), vlabels)
                             running_vloss += vloss.item()
                             vector_1 = np.where(voutputs.numpy().squeeze(1) > 0.5, True, False)
-                            vector_2 = np.where(voutputs.numpy().squeeze(1) > 0.55, True, False)
                             vector_3 = np.where(voutputs.numpy().squeeze(1) > 0.6, True, False)
-                            vector_4 = np.where(voutputs.numpy().squeeze(1) > 0.65, True, False)
                             vector_5 = np.where(voutputs.numpy().squeeze(1) > 0.7, True, False)
                             v_labels_tf = np.where(vlabels.numpy() > 0.9, True, False)
                             bit_xor_1 = np.bitwise_not(np.bitwise_xor(vector_1, v_labels_tf))
-                            bit_xor_2 = np.bitwise_not(np.bitwise_xor(vector_2, v_labels_tf))
                             bit_xor_3 = np.bitwise_not(np.bitwise_xor(vector_3, v_labels_tf))
-                            bit_xor_4 = np.bitwise_not(np.bitwise_xor(vector_4, v_labels_tf))
                             bit_xor_5 = np.bitwise_not(np.bitwise_xor(vector_5, v_labels_tf))
                             running_true_accuracy_1 = running_true_accuracy + bit_xor_1.sum() / len(bit_xor_1)
-                            running_true_accuracy_2 = running_true_accuracy + bit_xor_2.sum() / len(bit_xor_2)
                             running_true_accuracy_3 = running_true_accuracy + bit_xor_3.sum() / len(bit_xor_3)
-                            running_true_accuracy_4 = running_true_accuracy + bit_xor_4.sum() / len(bit_xor_4)
                             running_true_accuracy_5 = running_true_accuracy + bit_xor_5.sum() / len(bit_xor_5)
                     self.net.train(True)  # Turn gradients back on for training
                     avg_loss = running_loss / 9
                     avg_vloss = running_vloss / len(self.validation_loader)
                     avg_accuracy_prediction_1 = 100 * (running_true_accuracy_1 / len(self.validation_loader))
-                    avg_accuracy_prediction_2 = 100 * (running_true_accuracy_2 / len(self.validation_loader))
                     avg_accuracy_prediction_3 = 100 * (running_true_accuracy_3 / len(self.validation_loader))
-                    avg_accuracy_prediction_4 = 100 * (running_true_accuracy_4 / len(self.validation_loader))
                     avg_accuracy_prediction_5 = 100 * (running_true_accuracy_5 / len(self.validation_loader))
                     # Log the running loss averaged per batch
                     self.writer.add_scalars('Training vs. Validation Loss', {'Training': avg_loss, 'Validation': avg_vloss}, epoch + 1)
                     self.writer.add_scalars('True accuracy', {'accuracy-0.5': avg_accuracy_prediction_1,
-                                                              'accuracy-0.55': avg_accuracy_prediction_2,
                                                               'accuracy-0.6': avg_accuracy_prediction_3,
-                                                              'accuracy-0.65': avg_accuracy_prediction_4,
                                                               'accuracy-0.7': avg_accuracy_prediction_5}, epoch + 1)
                     self.average_loss_validation.append(avg_vloss)
                     self.average_loss_training.append(avg_loss)
                     self.avg_accuracy_prediction_1.append(avg_accuracy_prediction_1)
-                    self.avg_accuracy_prediction_2.append(avg_accuracy_prediction_2)
                     self.avg_accuracy_prediction_3.append(avg_accuracy_prediction_3)
-                    self.avg_accuracy_prediction_4.append(avg_accuracy_prediction_4)
                     self.avg_accuracy_prediction_5.append(avg_accuracy_prediction_5)
                     self.epoch_number.append(epoch)
                     self.writer.flush()
