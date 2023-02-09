@@ -12,7 +12,7 @@ from torch import nn
 import pickle
 import input_parser
 import training
-from load_drives import init_drives_dataset, get_cells_per_drive_in_dataset, prepare_switchover_col, \
+from load_preprocess_ds import init_drives_dataset, get_cells_per_drive_in_dataset, prepare_switchover_col, \
     normalize_correlate_features, training_sets_init
 from training import prepare_data_sets
 from torch.utils.data import TensorDataset, DataLoader

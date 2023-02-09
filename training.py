@@ -14,7 +14,7 @@ from torch import optim
 from torch.utils.tensorboard import SummaryWriter
 
 import architecture
-from load_drives import create_seq
+from load_preprocess_ds import create_sequence
 from imblearn.over_sampling import SMOTE
 
 
@@ -76,7 +76,7 @@ def prepare_data_sets(data_frame, SEQ_LEN, balanced, name):
         X_val, y_val = copy.copy(xs[train_size:train_size + test_size]), copy.copy(ys[train_size:train_size + test_size])
         X_test, y_test = copy.copy(xs[train_size + test_size:]), copy.copy(ys[train_size + test_size:])
     else:
-        seq, seq_label = create_seq(data_frame, SEQ_LEN)
+        seq, seq_label = create_sequence(data_frame, SEQ_LEN)
         data_set_size = seq.shape[0]
         train_size = int(data_set_size * 0.8)
         test_size = int(int(data_set_size - train_size) / 2)

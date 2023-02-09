@@ -8,14 +8,15 @@ import cell_calculation
 import seaborn as sns
 
 
-def init_drives_dataset(pickle_name, DRIVE_NUM, NUM_DRIVES):
+def init_drives_dataset(pickle_name, starting_drive_number, number_of_drives_for_ds):
     big_df = pd.read_pickle(pickle_name)
+    one_hot = pd.get_dummies(big_df['operator'], prefix='operator')  # make the operator into 1 hot encoding.
+    big_df = pd.concat([big_df, one_hot], axis=1)  # Concatenate the original DataFrame and the one-hot encoding
     for i in big_df.columns:
         # count number of rows with missing values
         n_miss = big_df[i].isnull().sum()
         perc = n_miss / big_df.shape[0] * 100
         print('col: {} is missing: {}'.format(i, perc))
-    x = 5
     drives = [v for k, v in big_df.groupby(['date', 'time'])]
 
     sorted_drives = []
@@ -25,7 +26,7 @@ def init_drives_dataset(pickle_name, DRIVE_NUM, NUM_DRIVES):
 
     # each drive is broken into imei. There are 600 drives and at most 6 modems.
     drives_by_imei_dictionary = {}
-    for i in range(DRIVE_NUM, DRIVE_NUM + NUM_DRIVES):  # len(drives_by_modem)
+    for i in range(starting_drive_number, starting_drive_number + number_of_drives_for_ds):  # len(drives_by_modem)
         for j in range(len(sorted_drives[i])):  # len(drives_by_modem[i]) - number os modems in drive.
             key_for_dict = str(
                 sorted_drives[i][j]['date'].iloc[0] + '_' + sorted_drives[i][j]['time'].iloc[0] + '_' +
@@ -82,15 +83,15 @@ def normalize_correlate_features(data_dict):
                      'latency_min', 'positionPrecision', 'servingcellid', 'qp_quantile_90', 'qp_min', 'qp_median',
                      'simIdentifier', 'source_name', 'end_state', 'distance_meters', 'norm_bw',
                      'frame_latency_quantile_90', 'frame_latency_min', 'frame_latency_median'], inplace=True, axis=1)
+
         normalized_cols = ['longitude', 'latitude', 'rsrp', 'rssi', 'rsrq', 'modem_bandwidth', 'latency_mean',
-                           'total_bitrate', 'frame_latency_mean', 'qp_mean', 'loss_rate']
+                           'total_bitrate', 'frame_latency_mean', 'qp_mean', 'loss_rate', 'timestamp', 'switchover_global']
         scaler = MinMaxScaler()
         for col in normalized_cols:
             data_dict[key][col] = pd.DataFrame(scaler.fit_transform(data_dict[key][[col]]))
-        data_cols = ['longitude', 'latitude', 'rsrp', 'rssi', 'rsrq', 'modem_bandwidth', 'latency_mean',
-                     'total_bitrate', 'frame_latency_mean', 'loss_rate', 'qp_mean', 'switchover_global']
-        labels_dict[key] = copy.copy(data_dict[key][data_cols])
-        data_dict[key] = copy.copy(data_dict[key][data_cols])
+
+        labels_dict[key] = copy.copy(data_dict[key][normalized_cols])
+        data_dict[key] = copy.copy(data_dict[key][normalized_cols])
         corr = data_dict[key].corr()
         # selected_columns = np.full((corr.shape[0],), True, dtype=bool)
         # for i in range(corr.shape[0]):
@@ -112,7 +113,7 @@ def normalize_correlate_features(data_dict):
     return data_dict
 
 
-def create_seq(data_dict, seq_length):
+def create_sequence(data_dict, seq_length):
     xs = []
     ys = []
     for i in range(len(data_dict) - seq_length):
