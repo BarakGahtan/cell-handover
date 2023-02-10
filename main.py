@@ -13,7 +13,7 @@ import pickle
 import input_parser
 import training
 from load_preprocess_ds import init_drives_dataset, get_cells_per_drive_in_dataset, prepare_switchover_col, \
-    normalize_correlate_features, training_sets_init
+    preprocess_features, training_sets_init
 from training import prepare_data_sets
 from torch.utils.data import TensorDataset, DataLoader
 
@@ -26,12 +26,12 @@ if __name__ == "__main__":
     to_balance = True
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     if opts.load_from_files == 0:
-        returned_drives_by_imei_dict_train = init_drives_dataset('pickle_rick.pkl', opts.starting_drive_train, opts.number_drives)
+        returned_drives_by_imei_dict_train = init_drives_dataset('pickle_rick_full.pkl', opts.starting_drive_train, opts.number_drives)
         # cells_per_drives_in_dataset_train, cells_dict_train = get_cells_per_drive_in_dataset(returned_drives_by_imei_dict_train)
-        drives_by_imei_dict_train = prepare_switchover_col(returned_drives_by_imei_dict_train)
-        training_data = training_sets_init(drives_by_imei_dict_train, opts.max_switch_over)
+        drives_by_imsi_dict = prepare_switchover_col(returned_drives_by_imei_dict_train)
+        training_data = training_sets_init(drives_by_imsi_dict, opts.max_switch_over, opts.max_data_imsi)
         # correlated_data_dict_train = normalize_correlate_features(drives_by_imei_dict_train)
-        correlated_data_dict_train = normalize_correlate_features(training_data)
+        correlated_data_dict_train = preprocess_features(training_data)
         data_set_concat_train = pd.concat(correlated_data_dict_train, axis=0).reset_index()
         data_set_concat_train.drop(["level_0", "level_1"], axis=1, inplace=True)
         X_train_seq, y_train_label, x_val_seq, y_val_label, x_test_seq, y_test_label = \

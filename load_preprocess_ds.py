@@ -2,6 +2,7 @@ import copy
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
+from sklearn.impute import KNNImputer
 from sklearn.preprocessing import MinMaxScaler
 
 import cell_calculation
@@ -10,29 +11,28 @@ import seaborn as sns
 
 def init_drives_dataset(pickle_name, starting_drive_number, number_of_drives_for_ds):
     big_df = pd.read_pickle(pickle_name)
-    one_hot = pd.get_dummies(big_df['operator'], prefix='operator')  # make the operator into 1 hot encoding.
-    big_df = pd.concat([big_df, one_hot], axis=1)  # Concatenate the original DataFrame and the one-hot encoding
-    for i in big_df.columns:
-        # count number of rows with missing values
-        n_miss = big_df[i].isnull().sum()
-        perc = n_miss / big_df.shape[0] * 100
-        print('col: {} is missing: {}'.format(i, perc))
+
+    # for i in big_df.columns:
+    #     # count number of rows with missing values
+    #     n_miss = big_df[i].isnull().sum()
+    #     perc = round(n_miss / big_df.shape[0] * 100, 3)
+    #     print('col: {} is missing: {}'.format(i, perc))
     drives = [v for k, v in big_df.groupby(['date', 'time'])]
 
     sorted_drives = []
     for i in range(len(drives)):  # Now filter according to imei in each drive
-        sorted_drives.append([v for k, v in drives[i].groupby('imei')])
+        sorted_drives.append([v for k, v in drives[i].groupby('imsi')])
     # drive_by_modems is list of lists. each drive is a list of lists. the list inside is for diff imeis.
 
-    # each drive is broken into imei. There are 600 drives and at most 6 modems.
-    drives_by_imei_dictionary = {}
+    # each drive is broken into imsi. There are 600 drives and at most 6 modems.
+    drives_by_imsi_dictionary = {}
     for i in range(starting_drive_number, starting_drive_number + number_of_drives_for_ds):  # len(drives_by_modem)
         for j in range(len(sorted_drives[i])):  # len(drives_by_modem[i]) - number os modems in drive.
             key_for_dict = str(
                 sorted_drives[i][j]['date'].iloc[0] + '_' + sorted_drives[i][j]['time'].iloc[0] + '_' +
-                str(sorted_drives[i][j]['imei'].iloc[0]))
-            drives_by_imei_dictionary[key_for_dict] = copy.copy(sorted_drives[i][j])
-    return drives_by_imei_dictionary
+                str(sorted_drives[i][j]['imsi'].iloc[0]))
+            drives_by_imsi_dictionary[key_for_dict] = copy.copy(sorted_drives[i][j])
+    return drives_by_imsi_dictionary
 
 
 # identifying the cells of each drive per modem. the key of the dict is when the drive started following by the
@@ -73,17 +73,29 @@ def prepare_switchover_col(drives_by_imei_dictionary):
     return drives_by_imei_dictionary
 
 
-def normalize_correlate_features(data_dict):
+def fill_missing_data_per_col(df, col_name):
+    imputer = KNNImputer(n_neighbors=3)  # fill missing data
+    latitude_col_imputed = imputer.fit_transform(df[[col_name]])
+    df[col_name] = latitude_col_imputed
+    return df
+
+
+def preprocess_features(data_dict):
+    # one_hot = pd.get_dummies(big_df['operator'], prefix='operator')  # make the operator into 1 hot encoding.
+    # big_df = pd.concat([big_df, one_hot], axis=1)  # Concatenate the original DataFrame and the one-hot encoding
     labels_dict = {}
     for key in data_dict.keys():
-        data_dict[key].drop(
-            columns=['_id', 'date', 'time',
-                     'latency_quantile_95', 'band', 'changes', 'longitude_perimeter', 'latitude_perimeter',
-                     'client_id', 'modem_id', 'network_type', 'operator', 'latency_max', 'latency_median',
-                     'latency_min', 'positionPrecision', 'servingcellid', 'qp_quantile_90', 'qp_min', 'qp_median',
-                     'simIdentifier', 'source_name', 'end_state', 'distance_meters', 'norm_bw',
-                     'frame_latency_quantile_90', 'frame_latency_min', 'frame_latency_median'], inplace=True, axis=1)
-
+        data_dict[key].drop(columns=['imei', 'drive_id'], inplace=True, axis=1)
+        col_to_fill_missing_values = ['latitude', 'longitude', 'norm_bw', 'changes', 'end_state']
+        for col in col_to_fill_missing_values:
+            n_miss = data_dict[key][col].isnull().sum()
+            perc = round(n_miss / data_dict[key].shape[0] * 100, 4)
+            fill_missing_data_per_col(data_dict[key], col)  # fill the missing data per coloumn using KNNimputer with nearest neighbors.
+            n_miss = data_dict[key][col].isnull().sum()
+            perc = round(n_miss / data_dict[key].shape[0] * 100, 4)
+            x = 5
+        # TODO: should do here a correlation based .
+        x = 6
         normalized_cols = ['longitude', 'latitude', 'rsrp', 'rssi', 'rsrq', 'modem_bandwidth', 'latency_mean',
                            'total_bitrate', 'frame_latency_mean', 'qp_mean', 'loss_rate', 'timestamp', 'switchover_global']
         scaler = MinMaxScaler()
@@ -126,7 +138,7 @@ def create_sequence(data_dict, seq_length):
     return np.array(xs), np.array(ys)
 
 
-def training_sets_init(given_dict, max_switchover):
+def training_sets_init(given_dict, max_switchover, imsi_number):
     result_dict = {}
     if max_switchover == 1:
         keys = given_dict.keys()
@@ -142,21 +154,21 @@ def training_sets_init(given_dict, max_switchover):
                         max_count = count_so
                     else:
                         continue
-    else:
+        return result_dict
+    else:  ##concatenate all of the drives with in the same IMSI, and then take the biggest one.
         keys = given_dict.keys()
         special_character = "_"
-        keys_imei = set([key.split(special_character)[-1] for key in keys if special_character in key])
-        for key in keys_imei:
+        keys_imsi = set([key.split(special_character)[-1] for key in keys if special_character in key])
+        for key in keys_imsi:
             for k in given_dict.keys():
                 if k.endswith(key):
                     if key in result_dict:
                         result_dict[key] = pd.concat([result_dict[key], copy.copy(given_dict[k])], ignore_index=True)
                     else:
                         result_dict[key] = copy.copy(given_dict[k])
-        x = 5
         # highest_imei_key = max(result_dict, key=lambda x: len(result_dict[x]))
         # results_return_key = {highest_imei_key: copy.copy(result_dict[highest_imei_key])}
         # result_dict = results_return_key
-    # imei_key = sorted(result_dict, key=lambda k: len(result_dict[k]), reverse=True)[1]
-    # dict_to_return = {imei_key: result_dict[imei_key]}
-    return result_dict
+        imei_key = sorted(result_dict, key=lambda k: len(result_dict[k]), reverse=True)[imsi_number]
+        dict_to_return = {imei_key: copy.copy(result_dict[imei_key])}
+        return dict_to_return
