@@ -167,7 +167,7 @@ def training_sets_init(given_dict, max_switchover, imsi_number):
                         result_dict[key] = copy.copy(given_dict[k])
         # highest_imei_key = max(result_dict, key=lambda x: len(result_dict[x]))
         # results_return_key = {highest_imei_key: copy.copy(result_dict[highest_imei_key])}
-        # result_dict = results_return_key
-        imei_key = sorted(result_dict, key=lambda k: len(result_dict[k]), reverse=True)[imsi_number]
-        dict_to_return = {imei_key: copy.copy(result_dict[imei_key])}
-        return dict_to_return, imei_key
+        # # result_dict = results_return_key
+        # imei_key = sorted(result_dict, key=lambda k: len(result_dict[k]), reverse=True)[imsi_number]
+        # dict_to_return = {imei_key: copy.copy(result_dict[imei_key])}
+        return result_dict
