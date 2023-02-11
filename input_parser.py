@@ -24,7 +24,8 @@ class Parser(object):
         parser_.add_argument('-seq', '--sequence-length', default=5, type=int, help='Number time series steps to look back')
         parser_.add_argument('-nnsize', '--neuralnetwork-size', default=64, type=int, help='Neural network size')
         parser_.add_argument('-nnlayers', '--neuralnetwork-layers', default=2, type=int, help='Neural network number of layers')
-        parser_.add_argument('-balanced', '--bdataset', default=1, type=int, help='Generate balanced dataset or not')
+        parser_.add_argument('-balanced', '--bdataset', default=1, type=int,
+                             help='if 1 then under sample the data, if 0 then use SMOTE to balance the data')
         parser_.add_argument('-bs', '--batch_size', default=32, type=int, help='batch size')
         parser_.add_argument('-epoch', '--epoch_number', default=1000, type=int, help='number of epochs')
         parser_.add_argument('-lr', '--learn_rate', default=0.0001, type=float, help='learning rate')

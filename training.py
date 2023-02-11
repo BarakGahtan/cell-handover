@@ -12,7 +12,7 @@ import torch
 from matplotlib import pyplot as plt
 from torch import optim
 from torch.utils.tensorboard import SummaryWriter
-
+from sklearn.metrics import f1_score
 import architecture
 from load_preprocess_ds import create_sequence
 from imblearn.over_sampling import SMOTE
@@ -24,25 +24,11 @@ def make_Tensor(array):
 
 
 def balance_data_set(seq, seq_label):
-    count_label_0, count_label_1 = 0, 0
-    minority, majority = [], []
-    minority_label, majority_label = [], []
-    for i in range(len(seq)):
-        time_series = seq[i]
-        time_series_label = seq_label[i]
-        if time_series_label == 0:
-            count_label_0 = count_label_0 + 1
-            majority.append(seq[i])
-            majority_label.append(seq_label[i])
-        else:
-            count_label_1 = count_label_1 + 1
-            minority.append(seq[i])
-            minority_label.append(seq_label[i])
     sm = SMOTE(sampling_strategy='minority', random_state=42)
     seq_data_reshaped_for_balancing = seq.reshape(seq.shape[0], -1)
     oversampled_seq, oversampled_labels = sm.fit_resample(seq_data_reshaped_for_balancing, seq_label)
     oversampled_seq = oversampled_seq.reshape(oversampled_seq.shape[0], seq.shape[1], seq.shape[2])
-    return oversampled_seq, oversampled_labels, count_label_0, count_label_1
+    return oversampled_seq, oversampled_labels
     # minority = np.array(minority)
     # minority = minority.reshape(minority.shape[0],-1)
     # minority_label = np.array(minority_label)
@@ -54,9 +40,22 @@ def balance_data_set(seq, seq_label):
 
 
 def prepare_data_sets(data_frame, SEQ_LEN, balanced, name):
-    if balanced:
+    if balanced:  # under sampling
         so_idxs = data_frame.index[data_frame['switchover_global'] == 1].tolist()
         no_so_idxs = [random.randint(so_idxs[0], so_idxs[-1]) for _ in range(len(so_idxs)) if random.randint(so_idxs[0], so_idxs[-1]) not in so_idxs]
+        # so_perc = 100 * (len(so_idxs) / len(data_frame))
+        # so_perc = so_perc
+        # nso = 100 - so_perc
+        # sizes = [so_perc, nso]
+        # fig, ax = plt.subplots()
+        # labels = ['Switchover', "No Switchover"]
+        # ax.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=200)
+        # ax.axis('equal')
+        # # Add a title to the chart
+        # plt.title("Switchover Distribution")
+        # plt.tight_layout()
+        # plt.savefig("sodistribution.pdf", dpi=300)
+        # plt.show()
         balanced_indexes = [j for i in [no_so_idxs, so_idxs] for j in i]
         random.shuffle(balanced_indexes)
         xs, ys = [], []
@@ -75,8 +74,9 @@ def prepare_data_sets(data_frame, SEQ_LEN, balanced, name):
         x_train, y_train = copy.copy(xs[:train_size]), copy.copy(ys[:train_size])
         X_val, y_val = copy.copy(xs[train_size:train_size + test_size]), copy.copy(ys[train_size:train_size + test_size])
         X_test, y_test = copy.copy(xs[train_size + test_size:]), copy.copy(ys[train_size + test_size:])
-    else:
+    else:  # balance with SMOTE
         seq, seq_label = create_sequence(data_frame, SEQ_LEN)
+        seq, seq_label = balance_data_set(seq, seq_label)  # over sampled
         data_set_size = seq.shape[0]
         train_size = int(data_set_size * 0.8)
         test_size = int(int(data_set_size - train_size) / 2)
@@ -113,14 +113,10 @@ class optimizer:
         self.learn_rate = learning_rate
         self.average_loss_validation, self.average_loss_training, self.average_loss_test = [], [], []
         self.avg_accuracy_prediction_1 = []
-        self.avg_accuracy_prediction_2 = []
         self.avg_accuracy_prediction_3 = []
-        self.avg_accuracy_prediction_4 = []
         self.avg_accuracy_prediction_5 = []
         self.avg_accuracy_prediction_1_test = []
-        self.avg_accuracy_prediction_2_test = []
         self.avg_accuracy_prediction_3_test = []
-        self.avg_accuracy_prediction_4_test = []
         self.avg_accuracy_prediction_5_test = []
         self.epoch_number = []
         self.time_diff = 0
@@ -131,9 +127,7 @@ class optimizer:
         df_validation = pd.DataFrame({'avg_validation_loss': self.average_loss_validation,
                                       'avg_training_loss': self.average_loss_training,
                                       'accuracy_05_val': self.avg_accuracy_prediction_1,
-                                      'accuracy_055_val': self.avg_accuracy_prediction_2,
                                       'accuracy_06_val': self.avg_accuracy_prediction_3,
-                                      'accuracy_065_val': self.avg_accuracy_prediction_4,
                                       'accuracy_07_val': self.avg_accuracy_prediction_5,
                                       'epochs': self.epoch_number,
                                       'training time': self.time_diff,
@@ -147,9 +141,7 @@ class optimizer:
         df_test = pd.DataFrame({
             'avg_test_loss': self.average_loss_test,
             'accuracy_05_test': self.avg_accuracy_prediction_1_test,
-            'accuracy_055_test': self.avg_accuracy_prediction_2_test,
             'accuracy_06_test': self.avg_accuracy_prediction_3_test,
-            'accuracy_065_test': self.avg_accuracy_prediction_4_test,
             'accuracy_07_test': self.avg_accuracy_prediction_5_test},
         )
         unified_df = pd.concat([df_validation, df_test], axis=0)
@@ -244,39 +236,24 @@ class optimizer:
                 tloss = criterion(toutputs.squeeze(1), tlabels)
                 running_tloss += tloss.item()
                 vector_1 = np.where(toutputs.numpy().squeeze(1) > 0.5, True, False)
-                vector_2 = np.where(toutputs.numpy().squeeze(1) > 0.55, True, False)
                 vector_3 = np.where(toutputs.numpy().squeeze(1) > 0.6, True, False)
-                vector_4 = np.where(toutputs.numpy().squeeze(1) > 0.65, True, False)
                 vector_5 = np.where(toutputs.numpy().squeeze(1) > 0.7, True, False)
-                v_labels_tf = np.where(tlabels.numpy() > 0.9, True, False)
-                bit_xor_1 = np.bitwise_not(np.bitwise_xor(vector_1, v_labels_tf))
-                bit_xor_2 = np.bitwise_not(np.bitwise_xor(vector_2, v_labels_tf))
-                bit_xor_3 = np.bitwise_not(np.bitwise_xor(vector_3, v_labels_tf))
-                bit_xor_4 = np.bitwise_not(np.bitwise_xor(vector_4, v_labels_tf))
-                bit_xor_5 = np.bitwise_not(np.bitwise_xor(vector_5, v_labels_tf))
-                running_true_accuracy_1 = running_true_accuracy + bit_xor_1.sum() / len(bit_xor_1)
-                running_true_accuracy_2 = running_true_accuracy + bit_xor_2.sum() / len(bit_xor_2)
-                running_true_accuracy_3 = running_true_accuracy + bit_xor_3.sum() / len(bit_xor_3)
-                running_true_accuracy_4 = running_true_accuracy + bit_xor_4.sum() / len(bit_xor_4)
-                running_true_accuracy_5 = running_true_accuracy + bit_xor_5.sum() / len(bit_xor_5)
+                t_labels_tf = np.where(tlabels.numpy() > 0.9, True, False)
+                f1_1 = f1_score(t_labels_tf, vector_1)
+                f1_3 = f1_score(t_labels_tf, vector_3)
+                f1_5 = f1_score(t_labels_tf, vector_5)
             avg_tloss = running_tloss / len(self.test_loader)
-            avg_accuracy_prediction_1 = 100 * (running_true_accuracy_1 / len(self.test_loader))
-            avg_accuracy_prediction_2 = 100 * (running_true_accuracy_2 / len(self.test_loader))
-            avg_accuracy_prediction_3 = 100 * (running_true_accuracy_3 / len(self.test_loader))
-            avg_accuracy_prediction_4 = 100 * (running_true_accuracy_4 / len(self.test_loader))
-            avg_accuracy_prediction_5 = 100 * (running_true_accuracy_5 / len(self.test_loader))
+            avg_accuracy_prediction_1 = 100 * f1_1
+            avg_accuracy_prediction_3 = 100 * f1_3
+            avg_accuracy_prediction_5 = 100 * f1_5
             # Log the running loss averaged per batch
             self.writer.add_scalars('Test set', {'Test loss': avg_tloss}, j + 1)
             self.writer.add_scalars('True accuracy Test set', {'accuracy-0.5': avg_accuracy_prediction_1,
-                                                               'accuracy-0.55': avg_accuracy_prediction_2,
                                                                'accuracy-0.6': avg_accuracy_prediction_3,
-                                                               'accuracy-0.65': avg_accuracy_prediction_4,
                                                                'accuracy-0.7': avg_accuracy_prediction_5}, j + 1)
         self.average_loss_test.append(avg_tloss)
         self.avg_accuracy_prediction_1_test.append(avg_accuracy_prediction_1)
-        self.avg_accuracy_prediction_2_test.append(avg_accuracy_prediction_2)
         self.avg_accuracy_prediction_3_test.append(avg_accuracy_prediction_3)
-        self.avg_accuracy_prediction_4_test.append(avg_accuracy_prediction_4)
         self.avg_accuracy_prediction_5_test.append(avg_accuracy_prediction_5)
         self.writer.flush()
         self.write_to_file()

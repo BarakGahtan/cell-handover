@@ -1,9 +1,21 @@
 #!/bin/bash
 
-##20 drives, sequence 32, 64, 128
-#python3 main.py -nd 20 -ndtrain 400 -seq 32 -nnsize 32 -nnlayers 2 -balanced 1 -bs 256 -tt 0 -name seq_32_20 -mso 0 -lff 0
-#python3 main.py -nd 20 -ndtrain 400 -seq 64 -nnsize 64 -nnlayers 2 -balanced 1 -bs 256 -tt 0 -name seq_64_20 -mso 0 -lff 0
-#python3 main.py -nd 20 -ndtrain 400 -seq 128 -nnsize 128 -nnlayers 2 -balanced 1 -bs 256 -tt 0 -name seq_128_20 -mso 0 -lff 0
+##20, 50, 80 drives, sequence 32 #under sampling
+python3 main.py -nd 20 -ndtrain 400 -seq 32 -nnsize 32 -nnlayers 2 -balanced 1 -bs 256 -tt 0 -name seq_32_20_1_imsi -mso 0 -lff 0 -mdimsi 0
+python3 main.py -nd 50 -ndtrain 400 -seq 32 -nnsize 32 -nnlayers 2 -balanced 1 -bs 256 -tt 0 -name seq_32_50_1_imsi -mso 0 -lff 0 -mdimsi 0
+python3 main.py -nd 80 -ndtrain 400 -seq 32 -nnsize 32 -nnlayers 2 -balanced 1 -bs 256 -tt 0 -name seq_32_80_1_imsi -mso 0 -lff 0 -mdimsi 0
+
+##20, 50, 80 drives, sequence 32 #under sampling
+python3 main.py -nd 20 -ndtrain 400 -seq 64 -nnsize 32 -nnlayers 2 -balanced 1 -bs 256 -tt 0 -name seq_64_20_1_imsi -mso 0 -lff 0 -mdimsi 0
+python3 main.py -nd 50 -ndtrain 400 -seq 64 -nnsize 32 -nnlayers 2 -balanced 1 -bs 256 -tt 0 -name seq_64_50_1_imsi -mso 0 -lff 0 -mdimsi 0
+python3 main.py -nd 80 -ndtrain 400 -seq 64 -nnsize 32 -nnlayers 2 -balanced 1 -bs 256 -tt 0 -name seq_64_80_1_imsi -mso 0 -lff 0 -mdimsi 0
+
+##20, 50, 80 drives, sequence 32 #under sampling
+python3 main.py -nd 20 -ndtrain 400 -seq 128 -nnsize 32 -nnlayers 2 -balanced 1 -bs 256 -tt 0 -name seq_128_20_1_imsi -mso 0 -lff 0 -mdimsi 0
+python3 main.py -nd 50 -ndtrain 400 -seq 128 -nnsize 32 -nnlayers 2 -balanced 1 -bs 256 -tt 0 -name seq_128_50_1_imsi -mso 0 -lff 0 -mdimsi 0
+python3 main.py -nd 80 -ndtrain 400 -seq 128 -nnsize 32 -nnlayers 2 -balanced 1 -bs 256 -tt 0 -name seq_128_80_1_imsi -mso 0 -lff 0 -mdimsi 0
+
+
 ##50 drives, sequence 32, 64, 128
 #python3 main.py -nd 50 -ndtrain 400 -seq 32 -nnsize 32 -nnlayers 2 -balanced 1 -bs 256 -tt 0 -name seq_32_50 -mso 0 -lff 0
 #python3 main.py -nd 50 -ndtrain 400 -seq 64 -nnsize 64 -nnlayers 2 -balanced 1 -bs 256 -tt 0 -name seq_64_50 -mso 0 -lff 0

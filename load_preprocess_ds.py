@@ -4,21 +4,29 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from sklearn.impute import KNNImputer
 from sklearn.preprocessing import MinMaxScaler
-
 import cell_calculation
 import seaborn as sns
 
 
-def init_drives_dataset(pickle_name, starting_drive_number, number_of_drives_for_ds):
+def init_drives_dataset(pickle_name, number_of_drives_for_ds):
     big_df = pd.read_pickle(pickle_name)
-
+    big_df = big_df[big_df['date'] > '20221201']  # According to the drives specific latest with DriveU algo.
+    big_df.drop(columns=['imei', 'drive_id', 'changes', 'end_state'], inplace=True, axis=1)
+    # plt.figure(figsize=(15, 10))
+    cor = big_df.corr().abs()
+    # sns.heatmap(cor, annot=True, cmap=plt.cm.Blues, fmt=".2f")
+    # plt.tight_layout()
+    # plt.savefig("corrmatrixfull-newrides.pdf", dpi=300)
+    # plt.show()
+    upper_tri = cor.where(np.triu(np.ones(cor.shape), k=1).astype(np.bool))
+    to_drop = [column for column in upper_tri.columns if any(upper_tri[column] > 0.90)]
+    # big_df = big_df[big_df['date'] > '20221201']
     # for i in big_df.columns:
     #     # count number of rows with missing values
     #     n_miss = big_df[i].isnull().sum()
     #     perc = round(n_miss / big_df.shape[0] * 100, 3)
     #     print('col: {} is missing: {}'.format(i, perc))
     drives = [v for k, v in big_df.groupby(['date', 'time'])]
-
     sorted_drives = []
     for i in range(len(drives)):  # Now filter according to imei in each drive
         sorted_drives.append([v for k, v in drives[i].groupby('imsi')])
@@ -26,12 +34,18 @@ def init_drives_dataset(pickle_name, starting_drive_number, number_of_drives_for
 
     # each drive is broken into imsi. There are 600 drives and at most 6 modems.
     drives_by_imsi_dictionary = {}
-    for i in range(starting_drive_number, starting_drive_number + number_of_drives_for_ds):  # len(drives_by_modem)
-        for j in range(len(sorted_drives[i])):  # len(drives_by_modem[i]) - number os modems in drive.
+    count = number_of_drives_for_ds
+    counter = 0
+    for i in range(len(sorted_drives) - 1, -1, -1):  # len(drives_by_modem)
+        if counter == count:
+            break
+        for j in range(len(sorted_drives[i])):  # len(drives_by_modem[i]) - number of imsis in drive.
             key_for_dict = str(
                 sorted_drives[i][j]['date'].iloc[0] + '_' + sorted_drives[i][j]['time'].iloc[0] + '_' +
-                str(sorted_drives[i][j]['imsi'].iloc[0]))
-            drives_by_imsi_dictionary[key_for_dict] = copy.copy(sorted_drives[i][j])
+                str(sorted_drives[len(sorted_drives) - i][j]['imsi'].iloc[0]))
+            x = 5
+            drives_by_imsi_dictionary[key_for_dict] = copy.copy(sorted_drives[i][j].drop(columns=to_drop, axis=1))
+        counter = counter + 1
     return drives_by_imsi_dictionary
 
 
@@ -54,7 +68,7 @@ def prepare_switchover_col(drives_by_imei_dictionary):
     for key in drives_by_imei_dictionary.keys():
         # drives_by_imei_dictionary[key]['celldecimal'] = drives_by_imei_dictionary[key]['celldecimal'].astype(float)
         drives_by_imei_dictionary[key] = drives_by_imei_dictionary[key].sort_values(by='timestamp')
-        drives_by_imei_dictionary[key]['globalcellid'] = drives_by_imei_dictionary[key]['globalcellid'].astype(float)
+        # drives_by_imei_dictionary[key]['globalcellid'] = drives_by_imei_dictionary[key]['globalcellid']
         drives_by_imei_dictionary[key]['globalcellid'].replace(0, np.nan, inplace=True)
         drives_by_imei_dictionary[key]['globalcellid'].ffill(inplace=True)
         drives_by_imei_dictionary[key]['globalcellid'].replace(2013, np.nan, inplace=True)
@@ -63,8 +77,8 @@ def prepare_switchover_col(drives_by_imei_dictionary):
         drives_by_imei_dictionary[key]['globalcellid'].ffill(inplace=True)
 
         drives_by_imei_dictionary[key] = drives_by_imei_dictionary[key].reset_index().drop('index', axis=1)
-        drives_by_imei_dictionary[key].insert(18, "switchover_global", 0, allow_duplicates=False)
-        drives_by_imei_dictionary[key].insert(18, "global_cell_id_shift", 0, allow_duplicates=False)
+        drives_by_imei_dictionary[key].insert(8, "switchover_global", 0, allow_duplicates=False)
+        drives_by_imei_dictionary[key].insert(8, "global_cell_id_shift", 0, allow_duplicates=False)
         drives_by_imei_dictionary[key]['global_cell_id_shift'] = drives_by_imei_dictionary[key]['globalcellid'].shift()
         drives_by_imei_dictionary[key]['globalcellid'] = drives_by_imei_dictionary[key].apply(
             lambda y: y['global_cell_id_shift'] if y['globalcellid'] == 0 else y['globalcellid'], axis=1)
@@ -74,54 +88,39 @@ def prepare_switchover_col(drives_by_imei_dictionary):
 
 
 def fill_missing_data_per_col(df, col_name):
-    imputer = KNNImputer(n_neighbors=3)  # fill missing data
+    imputer = KNNImputer(n_neighbors=2)  # fill missing data
     latitude_col_imputed = imputer.fit_transform(df[[col_name]])
     df[col_name] = latitude_col_imputed
     return df
 
 
 def preprocess_features(data_dict):
-    # one_hot = pd.get_dummies(big_df['operator'], prefix='operator')  # make the operator into 1 hot encoding.
-    # big_df = pd.concat([big_df, one_hot], axis=1)  # Concatenate the original DataFrame and the one-hot encoding
-    labels_dict = {}
     for key in data_dict.keys():
-        data_dict[key].drop(columns=['imei', 'drive_id'], inplace=True, axis=1)
-        col_to_fill_missing_values = ['latitude', 'longitude', 'norm_bw', 'changes', 'end_state']
+        # data_dict[key].drop(columns=['imei', 'drive_id', 'changes', 'end_state'], inplace=True, axis=1)
+        col_to_fill_missing_values = data_dict[key].columns.tolist()
         for col in col_to_fill_missing_values:
             n_miss = data_dict[key][col].isnull().sum()
             perc = round(n_miss / data_dict[key].shape[0] * 100, 4)
-            fill_missing_data_per_col(data_dict[key], col)  # fill the missing data per coloumn using KNNimputer with nearest neighbors.
+            if perc != 0:
+                fill_missing_data_per_col(data_dict[key], col)  # fill the missing data per coloumn using KNNimputer with nearest neighbors.
             n_miss = data_dict[key][col].isnull().sum()
             perc = round(n_miss / data_dict[key].shape[0] * 100, 4)
             x = 5
-        # TODO: should do here a correlation based .
-        x = 6
-        normalized_cols = ['longitude', 'latitude', 'rsrp', 'rssi', 'rsrq', 'modem_bandwidth', 'latency_mean',
-                           'total_bitrate', 'frame_latency_mean', 'qp_mean', 'loss_rate', 'timestamp', 'switchover_global']
+
+        data_dict[key].drop(["date", "time", "imsi", "globalcellid"], axis=1, inplace=True)
+        normalized_cols = data_dict[key].columns.tolist()
         scaler = MinMaxScaler()
         for col in normalized_cols:
+            if col == 'switchover_global' or col == 'operator':
+                continue
             data_dict[key][col] = pd.DataFrame(scaler.fit_transform(data_dict[key][[col]]))
 
-        labels_dict[key] = copy.copy(data_dict[key][normalized_cols])
-        data_dict[key] = copy.copy(data_dict[key][normalized_cols])
-        corr = data_dict[key].corr()
-        # selected_columns = np.full((corr.shape[0],), True, dtype=bool)
-        # for i in range(corr.shape[0]):
-        #     for j in range(i + 1, corr.shape[0]):
-        #         if corr.iloc[i, j] >= 0.9:
-        #             if selected_columns[j]:
-        #                 selected_columns[j] = False
-        # selected_columns = data_dict[key].columns[selected_columns]
-        # data_dict[key] = copy.copy(data_dict[key][selected_columns])
+        one_hot = pd.get_dummies(data_dict[key]['operator'], prefix='operator')  # make the operator into 1 hot encoding.
+        data_dict[key] = pd.concat([data_dict[key], one_hot], axis=1)  # Concatenate the original DataFrame and the one-hot encoding
+        data_dict[key].drop(["operator"], axis=1, inplace=True)
+        # data_dict[key] = copy.copy(data_dict[key][normalized_cols])
+        x = 5
 
-        # sns.heatmap(corr, fmt=".2f", linewidth=.2)
-        # plt.title("Communication Test Drive Features")
-        # plt.rcParams["figure.figsize"] = (30, 30)
-        # # plt.xticks(fontsize=16)
-        # plt.tight_layout()
-        # plt.savefig("correlationmat.pdf", dpi=300)
-        # x = 5
-        # plt.show(dpi=300)
     return data_dict
 
 
