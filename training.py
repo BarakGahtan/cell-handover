@@ -40,7 +40,7 @@ def balance_data_set(seq, seq_label):
     # majority_label = majority_label.reshape(majority_label.shape[0],-1)
 
 
-def prepare_data_sets(data_frame, SEQ_LEN, balanced, name, imei_key):
+def prepare_data_sets(data_frame, SEQ_LEN, balanced, name):
     if balanced:  # under sampling
         so_idxs = data_frame.index[data_frame['switchover_global'] == 1].tolist()
         no_so_idxs = [random.randint(so_idxs[0], so_idxs[-1]) for _ in range(len(so_idxs)) if random.randint(so_idxs[0], so_idxs[-1]) not in so_idxs]
@@ -86,12 +86,12 @@ def prepare_data_sets(data_frame, SEQ_LEN, balanced, name, imei_key):
             seq_label[train_size:train_size + test_size])
         X_test, y_test = copy.copy(seq[train_size + test_size:]), copy.copy(
             seq_label[train_size + test_size:])
-    pickle.dump(x_train, open('x_train_' + name + '_' + imei_key + '.pkl', "wb"))
-    pickle.dump(y_train, open('y_train_' + name + '_' + imei_key + '.pkl', "wb"))
-    pickle.dump(X_val, open('X_val_' + name + '_' + imei_key + '.pkl', "wb"))
-    pickle.dump(y_val, open('y_val_' + name + '_' + imei_key + '.pkl', "wb"))
-    pickle.dump(X_test, open('X_test_' + name + '_' + imei_key + '.pkl', "wb"))
-    pickle.dump(y_test, open('y_test_' + name + '_' + imei_key + '.pkl', "wb"))
+    pickle.dump(x_train, open('x_train_' + name + '.pkl', "wb"))
+    pickle.dump(y_train, open('y_train_' + name + '.pkl', "wb"))
+    pickle.dump(X_val, open('X_val_' + name + '.pkl', "wb"))
+    pickle.dump(y_val, open('y_val_' + name + '.pkl', "wb"))
+    pickle.dump(X_test, open('X_test_' + name + '.pkl', "wb"))
+    pickle.dump(y_test, open('y_test_' + name + '.pkl', "wb"))
     return make_Tensor(x_train), make_Tensor(y_train), make_Tensor(X_val), make_Tensor(y_val), make_Tensor(X_test), \
            make_Tensor(y_test)
     # return make_Tensor(x_train), make_Tensor(y_train), make_Tensor(X_val), make_Tensor(y_val), make_Tensor(X_test), \
