@@ -16,6 +16,7 @@ from sklearn.metrics import f1_score
 import architecture
 from load_preprocess_ds import create_sequence
 from imblearn.over_sampling import SMOTE
+from sklearn.metrics import confusion_matrix
 
 
 def make_Tensor(array):
@@ -39,7 +40,7 @@ def balance_data_set(seq, seq_label):
     # majority_label = majority_label.reshape(majority_label.shape[0],-1)
 
 
-def prepare_data_sets(data_frame, SEQ_LEN, balanced, name):
+def prepare_data_sets(data_frame, SEQ_LEN, balanced, name, imei_key):
     if balanced:  # under sampling
         so_idxs = data_frame.index[data_frame['switchover_global'] == 1].tolist()
         no_so_idxs = [random.randint(so_idxs[0], so_idxs[-1]) for _ in range(len(so_idxs)) if random.randint(so_idxs[0], so_idxs[-1]) not in so_idxs]
@@ -85,12 +86,12 @@ def prepare_data_sets(data_frame, SEQ_LEN, balanced, name):
             seq_label[train_size:train_size + test_size])
         X_test, y_test = copy.copy(seq[train_size + test_size:]), copy.copy(
             seq_label[train_size + test_size:])
-    pickle.dump(x_train, open('x_train_' + name + '.pkl', "wb"))
-    pickle.dump(y_train, open('y_train_' + name + '.pkl', "wb"))
-    pickle.dump(X_val, open('X_val_' + name + '.pkl', "wb"))
-    pickle.dump(y_val, open('y_val_' + name + '.pkl', "wb"))
-    pickle.dump(X_test, open('X_test_' + name + '.pkl', "wb"))
-    pickle.dump(y_test, open('y_test_' + name + '.pkl', "wb"))
+    pickle.dump(x_train, open('x_train_' + name + '_' + imei_key + '.pkl', "wb"))
+    pickle.dump(y_train, open('y_train_' + name + '_' + imei_key + '.pkl', "wb"))
+    pickle.dump(X_val, open('X_val_' + name + '_' + imei_key + '.pkl', "wb"))
+    pickle.dump(y_val, open('y_val_' + name + '_' + imei_key + '.pkl', "wb"))
+    pickle.dump(X_test, open('X_test_' + name + '_' + imei_key + '.pkl', "wb"))
+    pickle.dump(y_test, open('y_test_' + name + '_' + imei_key + '.pkl', "wb"))
     return make_Tensor(x_train), make_Tensor(y_train), make_Tensor(X_val), make_Tensor(y_val), make_Tensor(X_test), \
            make_Tensor(y_test)
     # return make_Tensor(x_train), make_Tensor(y_train), make_Tensor(X_val), make_Tensor(y_val), make_Tensor(X_test), \
@@ -123,7 +124,7 @@ class optimizer:
         self.batch_size = batch_size
         self.writer = SummaryWriter('models_imei_1/' + self.name + '_batch_size_' + str(self.batch_size))
 
-    def write_to_file(self):
+    def write_to_file(self, flag):
         df_validation = pd.DataFrame({'avg_validation_loss': self.average_loss_validation,
                                       'avg_training_loss': self.average_loss_training,
                                       'accuracy_05_val': self.avg_accuracy_prediction_1,
@@ -138,14 +139,17 @@ class optimizer:
                                       'testl_samples_batches_count': len(self.test_loader),
                                       'testl_sample_count': len(self.test_loader.dataset)})
 
-        df_test = pd.DataFrame({
-            'avg_test_loss': self.average_loss_test,
-            'accuracy_05_test': self.avg_accuracy_prediction_1_test,
-            'accuracy_06_test': self.avg_accuracy_prediction_3_test,
-            'accuracy_07_test': self.avg_accuracy_prediction_5_test},
-        )
-        unified_df = pd.concat([df_validation, df_test], axis=0)
-        unified_df.to_csv(self.name + '_batch_size_' + str(self.batch_size) + '_' + str(time.time()) + '.csv', index=False)
+        if flag is True:
+            df_test = pd.DataFrame({
+                'avg_test_loss': self.average_loss_test,
+                'accuracy_05_test': self.avg_accuracy_prediction_1_test,
+                'accuracy_06_test': self.avg_accuracy_prediction_3_test,
+                'accuracy_07_test': self.avg_accuracy_prediction_5_test},
+            )
+            unified_df = pd.concat([df_validation, df_test], axis=0)
+            unified_df.to_csv(self.name + '_batch_size_' + str(self.batch_size) + '_' + str(time.time()) + '.csv', index=False)
+        else:
+            df_validation.to_csv(self.name + '_batch_size_' + str(self.batch_size) + '_' + str(time.time()) + '.csv', index=False)
 
     def main_training_loop(self):
         avg_vloss = float('inf')
@@ -224,28 +228,29 @@ class optimizer:
         torch.save(self.net.state_dict(), self.name + '_batch_size' + str(self.batch_size) + '.pt')
         print('Finished Training')
         self.writer.flush()
+        self.write_to_file(flag=False)
 
-    def test_model(self):
+    def test_model(self, df):
+        # TODO make it into sequential data according to length of window for all of the drive.
+        drive_seq = []
         criterion = torch.nn.BCELoss()
         running_tloss, running_true_accuracy = 0.0, 0.0
         with torch.no_grad():
             self.net.train(False)  # Don't need to track gradients for validation
-            for j, tdata in enumerate(self.test_loader, 0):
+            for j, tdata in enumerate(drive_seq,
+                                      0):  # should have a loop for all of the seqential I will have for test. # let's iteratte on [X, sequencelength, features] (Should do all of the preprocess for it)
                 tinputs, tlabels = tdata
                 toutputs = self.net(tinputs)
                 tloss = criterion(toutputs.squeeze(1), tlabels)
                 running_tloss += tloss.item()
-                vector_1 = np.where(toutputs.numpy().squeeze(1) > 0.5, True, False)
-                vector_3 = np.where(toutputs.numpy().squeeze(1) > 0.6, True, False)
-                vector_5 = np.where(toutputs.numpy().squeeze(1) > 0.7, True, False)
-                t_labels_tf = np.where(tlabels.numpy() > 0.9, True, False)
-                f1_1 = f1_score(t_labels_tf, vector_1)
-                f1_3 = f1_score(t_labels_tf, vector_3)
-                f1_5 = f1_score(t_labels_tf, vector_5)
+                cm = confusion_matrix(y_true, y_pred)
+
+                tp = cm[1][1]
+                fp = cm[0][1]
             avg_tloss = running_tloss / len(self.test_loader)
-            avg_accuracy_prediction_1 = 100 * f1_1
-            avg_accuracy_prediction_3 = 100 * f1_3
-            avg_accuracy_prediction_5 = 100 * f1_5
+            avg_accuracy_prediction_1 = 100 * test_acc_1
+            avg_accuracy_prediction_3 = 100 * test_acc_3
+            avg_accuracy_prediction_5 = 100 * test_acc_5
             # Log the running loss averaged per batch
             self.writer.add_scalars('Test set', {'Test loss': avg_tloss}, j + 1)
             self.writer.add_scalars('True accuracy Test set', {'accuracy-0.5': avg_accuracy_prediction_1,
@@ -256,4 +261,4 @@ class optimizer:
         self.avg_accuracy_prediction_3_test.append(avg_accuracy_prediction_3)
         self.avg_accuracy_prediction_5_test.append(avg_accuracy_prediction_5)
         self.writer.flush()
-        self.write_to_file()
+        self.write_to_file(flag=True)

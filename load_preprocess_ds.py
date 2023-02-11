@@ -42,7 +42,7 @@ def init_drives_dataset(pickle_name, number_of_drives_for_ds):
         for j in range(len(sorted_drives[i])):  # len(drives_by_modem[i]) - number of imsis in drive.
             key_for_dict = str(
                 sorted_drives[i][j]['date'].iloc[0] + '_' + sorted_drives[i][j]['time'].iloc[0] + '_' +
-                str(sorted_drives[len(sorted_drives) - i][j]['imsi'].iloc[0]))
+                str(sorted_drives[i][j]['imsi'].iloc[0]))
             x = 5
             drives_by_imsi_dictionary[key_for_dict] = copy.copy(sorted_drives[i][j].drop(columns=to_drop, axis=1))
         counter = counter + 1
@@ -170,4 +170,4 @@ def training_sets_init(given_dict, max_switchover, imsi_number):
         # result_dict = results_return_key
         imei_key = sorted(result_dict, key=lambda k: len(result_dict[k]), reverse=True)[imsi_number]
         dict_to_return = {imei_key: copy.copy(result_dict[imei_key])}
-        return dict_to_return
+        return dict_to_return, imei_key
