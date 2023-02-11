@@ -80,20 +80,17 @@ def prepare_data_sets(data_frame, SEQ_LEN, balanced, name):
         seq, seq_label = balance_data_set(seq, seq_label)  # over sampled
         data_set_size = seq.shape[0]
         train_size = int(data_set_size * 0.8)
-        test_size = int(int(data_set_size - train_size) / 2)
+        test_size = int(int(data_set_size - train_size))
         x_train, y_train = copy.copy(seq[:train_size]), copy.copy(seq_label[:train_size])
         X_val, y_val = copy.copy(seq[train_size:train_size + test_size]), copy.copy(
             seq_label[train_size:train_size + test_size])
-        X_test, y_test = copy.copy(seq[train_size + test_size:]), copy.copy(
-            seq_label[train_size + test_size:])
     pickle.dump(x_train, open('x_train_' + name + '.pkl', "wb"))
     pickle.dump(y_train, open('y_train_' + name + '.pkl', "wb"))
     pickle.dump(X_val, open('X_val_' + name + '.pkl', "wb"))
     pickle.dump(y_val, open('y_val_' + name + '.pkl', "wb"))
-    pickle.dump(X_test, open('X_test_' + name + '.pkl', "wb"))
-    pickle.dump(y_test, open('y_test_' + name + '.pkl', "wb"))
-    return make_Tensor(x_train), make_Tensor(y_train), make_Tensor(X_val), make_Tensor(y_val), make_Tensor(X_test), \
-           make_Tensor(y_test)
+    # pickle.dump(X_test, open('X_test_' + name + '.pkl', "wb"))
+    # pickle.dump(y_test, open('y_test_' + name + '.pkl', "wb"))
+    return make_Tensor(x_train), make_Tensor(y_train), make_Tensor(X_val), make_Tensor(y_val)
     # return make_Tensor(x_train), make_Tensor(y_train), make_Tensor(X_val), make_Tensor(y_val), make_Tensor(X_test), \
     #     make_Tensor(y_test)
     # return x_train, y_train, X_val, y_val, X_test, y_test

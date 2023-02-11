@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.optim as optim
+from matplotlib import pyplot as plt
 from sklearn.preprocessing import MinMaxScaler, LabelEncoder
 from torch import nn
 import pickle
@@ -33,8 +34,21 @@ if __name__ == "__main__":
         # correlated_data_dict_train = normalize_correlate_features(drives_by_imei_dict_train)
         correlated_data_dict_train = preprocess_features(training_data)
         data_set_concat_train = pd.concat(correlated_data_dict_train, axis=0).reset_index()
+        # sum = data_set_concat_train['switchover_global'].sum()
+        # len_of_dataset = len(data_set_concat_train['switchover_global'])
+        # perc = 100 * (sum / len_of_dataset)
+        #
+        # labels = ['Switchover', 'No Switchover']
+        # sizes = [1.7, 100 - 1.7]
+        # fig, ax = plt.subplots()
+        # ax.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=200)
+        # ax.axis('equal')
+        # plt.title("Switchover Distribution")
+        # plt.savefig("SODist.pdf", dpi=300)
         data_set_concat_train.drop(["level_0", "level_1"], axis=1, inplace=True)
-        X_train_seq, y_train_label, x_val_seq, y_val_label, x_test_seq, y_test_label = \
+        # one_hot = pd.get_dummies(data_set_concat_train['operator'], prefix='operator')  # make the operator into 1 hot encoding.
+        # data_set_concat_train = pd.concat([data_set_concat_train, one_hot], axis=1)  # Concatenate the original DataFrame and the one-hot encoding
+        X_train_seq, y_train_label, x_val_seq, y_val_label = \
             prepare_data_sets(data_set_concat_train, SEQ_LEN=opts.sequence_length, balanced=opts.bdataset, name=opts.model_name)
         exit()
     else:
@@ -42,8 +56,8 @@ if __name__ == "__main__":
         y_train_label = training.make_Tensor(np.array(pickle.load(open('datasets/y_train_' + opts.model_name + '.pkl', "rb"))))
         x_val_seq = training.make_Tensor(np.array(pickle.load(open('datasets/X_val_' + opts.model_name + '.pkl', "rb"))))
         y_val_label = training.make_Tensor(np.array(pickle.load(open('datasets/y_val_' + opts.model_name + '.pkl', "rb"))))
-        x_test_seq = training.make_Tensor(np.array(pickle.load(open('datasets/X_test_' + opts.model_name + '.pkl', "rb"))))
-        y_test_label = training.make_Tensor(np.array(pickle.load(open('datasets/y_test_' + opts.model_name + '.pkl', "rb"))))
+        # x_test_seq = training.make_Tensor(np.array(pickle.load(open('datasets/X_test_' + opts.model_name + '.pkl', "rb"))))
+        # y_test_label = training.make_Tensor(np.array(pickle.load(open('datasets/y_test_' + opts.model_name + '.pkl', "rb"))))
 
     # seq = pickle.load(open('x_data_eli1.pkl', "rb"))
     # y_data = pickle.load(open('y_data_eli1.pkl', "rb"))
@@ -68,15 +82,15 @@ if __name__ == "__main__":
         train_loader = DataLoader(train_data_set, batch_size=opts.batch_size, shuffle=False, drop_last=True)
         val_data_set = TensorDataset(x_val_seq, y_val_label)
         val_loader = DataLoader(val_data_set, batch_size=opts.batch_size, shuffle=False, drop_last=True)
-        test_data_set = TensorDataset(x_test_seq, y_test_label)
-        test_loader = DataLoader(test_data_set, batch_size=opts.batch_size, shuffle=False, drop_last=True)
+        # test_data_set = TensorDataset(x_test_seq, y_test_label)
+        # test_loader = DataLoader(test_data_set, batch_size=opts.batch_size, shuffle=False, drop_last=True)
         features_count = X_train_seq.shape[2]
-        training_class = training.optimizer(opts.model_name, opts.epoch_number, train_loader, val_loader, test_loader, opts.sequence_length,
+        training_class = training.optimizer(opts.model_name, opts.epoch_number, train_loader, val_loader, val_loader, opts.sequence_length,
                                             features_count, opts.neuralnetwork_size, opts.learn_rate, opts.batch_size)
         training_class.main_training_loop()
         print("Finished training model " + opts.model_name + "_" + str(opts.batch_size))
-        training_class.test_model()
-        print("Finished testing model " + opts.model_name + "_" + str(opts.batch_size))
+        # training_class.test_model()
+        # print("Finished testing model " + opts.model_name + "_" + str(opts.batch_size))
     else:
         print("finished making a data set.")
 

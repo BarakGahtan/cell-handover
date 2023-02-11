@@ -10,8 +10,9 @@ import seaborn as sns
 
 def init_drives_dataset(pickle_name, number_of_drives_for_ds):
     big_df = pd.read_pickle(pickle_name)
-    big_df = big_df[big_df['date'] > '20221201']  # According to the drives specific latest with DriveU algo.
-    big_df.drop(columns=['imei', 'drive_id', 'changes', 'end_state'], inplace=True, axis=1)
+    big_df = big_df[big_df['date'] >= '20221201']  # According to the drives specific latest with DriveU algo.
+    big_df.drop(columns=['imei', 'changes', 'end_state', 'operator', 'drive_id', 'rssi', 'latency_max', 'latency_mean', 'qp_mean', 'frame_lost',
+                         'frame_latency_mean'], inplace=True, axis=1)
     # plt.figure(figsize=(15, 10))
     cor = big_df.corr().abs()
     # sns.heatmap(cor, annot=True, cmap=plt.cm.Blues, fmt=".2f")
@@ -21,11 +22,11 @@ def init_drives_dataset(pickle_name, number_of_drives_for_ds):
     upper_tri = cor.where(np.triu(np.ones(cor.shape), k=1).astype(np.bool))
     to_drop = [column for column in upper_tri.columns if any(upper_tri[column] > 0.90)]
     # big_df = big_df[big_df['date'] > '20221201']
-    # for i in big_df.columns:
-    #     # count number of rows with missing values
-    #     n_miss = big_df[i].isnull().sum()
-    #     perc = round(n_miss / big_df.shape[0] * 100, 3)
-    #     print('col: {} is missing: {}'.format(i, perc))
+    for i in big_df.columns:
+        # count number of rows with missing values
+        n_miss = big_df[i].isnull().sum()
+        perc = round(n_miss / big_df.shape[0] * 100, 3)
+        print('col: {} is missing: {}'.format(i, perc))
     drives = [v for k, v in big_df.groupby(['date', 'time'])]
     sorted_drives = []
     for i in range(len(drives)):  # Now filter according to imei in each drive
@@ -44,7 +45,8 @@ def init_drives_dataset(pickle_name, number_of_drives_for_ds):
                 sorted_drives[i][j]['date'].iloc[0] + '_' + sorted_drives[i][j]['time'].iloc[0] + '_' +
                 str(sorted_drives[i][j]['imsi'].iloc[0]))
             x = 5
-            drives_by_imsi_dictionary[key_for_dict] = copy.copy(sorted_drives[i][j].drop(columns=to_drop, axis=1))
+            drives_by_imsi_dictionary[key_for_dict] = copy.copy(sorted_drives[i][j])
+            # drives_by_imsi_dictionary[key_for_dict] = copy.copy(sorted_drives[i][j].drop(columns=to_drop, axis=1))
         counter = counter + 1
     return drives_by_imsi_dictionary
 
@@ -111,13 +113,10 @@ def preprocess_features(data_dict):
         normalized_cols = data_dict[key].columns.tolist()
         scaler = MinMaxScaler()
         for col in normalized_cols:
-            if col == 'switchover_global' or col == 'operator':
+            if col == 'switchover_global':
                 continue
             data_dict[key][col] = pd.DataFrame(scaler.fit_transform(data_dict[key][[col]]))
 
-        one_hot = pd.get_dummies(data_dict[key]['operator'], prefix='operator')  # make the operator into 1 hot encoding.
-        data_dict[key] = pd.concat([data_dict[key], one_hot], axis=1)  # Concatenate the original DataFrame and the one-hot encoding
-        data_dict[key].drop(["operator"], axis=1, inplace=True)
         # data_dict[key] = copy.copy(data_dict[key][normalized_cols])
         x = 5
 
