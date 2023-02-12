@@ -11,33 +11,52 @@ from torch.nn import LogSoftmax
 class cnn_lstm_hybrid(nn.Module):
     def __init__(self, features):
         super(cnn_lstm_hybrid, self).__init__()
-        self.conv1d_1 = nn.Conv1d(in_channels=features,
+        self.conv1d_1 = nn.Sequential(
+            nn.Conv1d(in_channels=features,
                                   out_channels=64,
-                                  kernel_size=5,
+                                  kernel_size=3,
                                   stride=1,
-                                  padding=1)
+                                  padding=1),
+            nn.ReLU()
+        )
 
         self.conv1d_2 = nn.Sequential(
+            nn.Conv1d(in_channels=64,
+                      out_channels=64,
+                      kernel_size=3,
+                      stride=1,
+                      padding=1),
+            nn.ReLU(),
+            # nn.MaxPool1d(3),
+        )
+        self.conv1d_3 = nn.Sequential(
+            nn.Conv1d(in_channels=64,
+                      out_channels=64,
+                      kernel_size=3,
+                      stride=1,
+                      padding=1),
+            nn.ReLU(),
+            # nn.MaxPool1d(3),
+        )
+
+        self.conv1d_4 = nn.Sequential(
             nn.Conv1d(in_channels=64,
                       out_channels=128,
                       kernel_size=3,
                       stride=1,
                       padding=1),
             nn.ReLU(),
-            nn.MaxPool1d(3),
+            # nn.MaxPool1d(3),
         )
 
         self.lstm = nn.LSTM(input_size=128,
-                            hidden_size=256,
+                            hidden_size=128,
                             num_layers=2,
-                            bias=True,
-                            bidirectional=False,
                             batch_first=True)
 
-        self.dropout = nn.Dropout(0.5)
-
-        self.dense1 = nn.Linear(256, 128)
-        self.dense2 = nn.Linear(128, 32)
+        # self.dropout = nn.Dropout(0.3)
+        self.dense1 = nn.Linear(128, 64)
+        self.dense2 = nn.Linear(64, 32)
         self.dense3 = nn.Linear(32, 1)
         self.sigmoid = nn.Sigmoid()
 
@@ -50,6 +69,10 @@ class cnn_lstm_hybrid(nn.Module):
 
         x = self.conv1d_2(x)  # Shape : (B, C, S) => (B, 128, 256)
 
+        x = self.conv1d_3(x)  # Shape : (B, C, S) => (B, 128, 256)
+
+        x = self.conv1d_4(x)  # Shape : (B, C, S) => (B, 128, 256)
+
         x = x.transpose(1, 2)  # Shape : (B, S, C) == (B, S, F) => (B, 256, 128)
 
         self.lstm.flatten_parameters()
@@ -58,7 +81,7 @@ class cnn_lstm_hybrid(nn.Module):
 
         x = hidden[-1]  # Shape : (B, H) // -1 means the last sequence => (B, 50)
 
-        x = self.dropout(x)  # Shape : (B, H) => (B, 128)
+        # x = self.dropout(x)  # Shape : (B, H) => (B, 128)
 
         x = self.dense1(x)  # Shape : (B, 64)
 

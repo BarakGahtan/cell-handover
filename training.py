@@ -144,9 +144,9 @@ class optimizer:
                 'accuracy_07_test': self.avg_accuracy_prediction_5_test},
             )
             unified_df = pd.concat([df_validation, df_test], axis=0)
-            unified_df.to_csv(self.name + '_batch_size_' + str(self.batch_size) + '_' + str(time.time()) + '.csv', index=False)
+            unified_df.to_csv('models/' + self.name + '_batch_size_' + str(self.batch_size)+"/"+self.name + '_batch_size_' + str(self.batch_size) + '_' + str(time.time()) + '.csv', index=False)
         else:
-            df_validation.to_csv(self.name + '_batch_size_' + str(self.batch_size) + '_' + str(time.time()) + '.csv', index=False)
+            df_validation.to_csv('models/' + self.name + '_batch_size_' + str(self.batch_size)+"/"+self.name + '_batch_size_' + str(self.batch_size) + '_' + str(time.time()) + '.csv', index=False)
 
     def main_training_loop(self):
         avg_vloss = float('inf')
@@ -156,7 +156,7 @@ class optimizer:
         counter = 0
         patience = 15
         # To view, start TensorBoard on the command line with:
-        #   tensorboard --logdir=model/sseq_32_20
+        #   tensorboard --logdir=model/seq_64_20_all_imsi_batch_size_256
         # ...and open a browser tab to http://localhost:6006/
         start_time = time.time()
         for epoch in range(self.epochs):  # loop over the dataset multiple times
@@ -170,7 +170,7 @@ class optimizer:
                 optim_to_learn.step()
                 running_loss += loss.item()
                 if i % 10 == 9:
-                    print('Batch {}'.format(i + 1))
+                    # print('Batch {}'.format(i + 1))
                     running_vloss, running_true_accuracy = 0.0, 0.0
                     with torch.no_grad():
                         self.net.train(False)  # Don't need to track gradients for validation
@@ -210,7 +210,7 @@ class optimizer:
                     running_loss = 0.0
             if avg_vloss < best_val_loss:  # Save the best model based on validation loss
                 best_val_loss = avg_vloss
-                torch.save(self.net.state_dict(), 'best_model_' + self.name + '_batch_size_' + str(self.batch_size) + '.pt')
+                torch.save(self.net.state_dict(), 'models/' + self.name + '_batch_size_' + str(self.batch_size)+"/"+'best_model_' + self.name + '_batch_size_' + str(self.batch_size) + '.pt')
                 counter = 0
             else:
                 counter = counter + 1
