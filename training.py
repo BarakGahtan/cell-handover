@@ -79,18 +79,18 @@ def prepare_data_sets(data_frame, SEQ_LEN, balanced, name):
         seq, seq_label = create_sequence(data_frame, SEQ_LEN)
         seq, seq_label = balance_data_set(seq, seq_label)  # over sampled
         data_set_size = seq.shape[0]
-        train_size = int(data_set_size * 0.8)
+        train_size = int(data_set_size * 1)
         test_size = int(int(data_set_size - train_size))
         x_train, y_train = copy.copy(seq[:train_size]), copy.copy(seq_label[:train_size])
         X_val, y_val = copy.copy(seq[train_size:train_size + test_size]), copy.copy(
             seq_label[train_size:train_size + test_size])
-    pickle.dump(x_train, open('x_train_' + name + '.pkl', "wb"))
-    pickle.dump(y_train, open('y_train_' + name + '.pkl', "wb"))
-    pickle.dump(X_val, open('X_val_' + name + '.pkl', "wb"))
-    pickle.dump(y_val, open('y_val_' + name + '.pkl', "wb"))
+    pickle.dump(x_train, open('x_train_test_' + name + '.pkl', "wb"))
+    pickle.dump(y_train, open('y_train_test_' + name + '.pkl', "wb"))
+    # pickle.dump(X_val, open('X_val_' + name + '.pkl', "wb"))
+    # pickle.dump(y_val, open('y_val_' + name + '.pkl', "wb"))
     # pickle.dump(X_test, open('X_test_' + name + '.pkl', "wb"))
     # pickle.dump(y_test, open('y_test_' + name + '.pkl', "wb"))
-    return make_Tensor(x_train), make_Tensor(y_train), make_Tensor(X_val), make_Tensor(y_val)
+    return make_Tensor(x_train), make_Tensor(y_train)  # , make_Tensor(X_val), make_Tensor(y_val)
     # return make_Tensor(x_train), make_Tensor(y_train), make_Tensor(X_val), make_Tensor(y_val), make_Tensor(X_test), \
     #     make_Tensor(y_test)
     # return x_train, y_train, X_val, y_val, X_test, y_test
@@ -144,9 +144,13 @@ class optimizer:
                 'accuracy_07_test': self.avg_accuracy_prediction_5_test},
             )
             unified_df = pd.concat([df_validation, df_test], axis=0)
-            unified_df.to_csv('models/' + self.name + '_batch_size_' + str(self.batch_size)+"/"+self.name + '_batch_size_' + str(self.batch_size) + '_' + str(time.time()) + '.csv', index=False)
+            unified_df.to_csv(
+                'models/' + self.name + '_batch_size_' + str(self.batch_size) + "/" + self.name + '_batch_size_' + str(self.batch_size) + '_' + str(
+                    time.time()) + '.csv', index=False)
         else:
-            df_validation.to_csv('models/' + self.name + '_batch_size_' + str(self.batch_size)+"/"+self.name + '_batch_size_' + str(self.batch_size) + '_' + str(time.time()) + '.csv', index=False)
+            df_validation.to_csv(
+                'models/' + self.name + '_batch_size_' + str(self.batch_size) + "/" + self.name + '_batch_size_' + str(self.batch_size) + '_' + str(
+                    time.time()) + '.csv', index=False)
 
     def main_training_loop(self):
         avg_vloss = float('inf')
@@ -210,7 +214,9 @@ class optimizer:
                     running_loss = 0.0
             if avg_vloss < best_val_loss:  # Save the best model based on validation loss
                 best_val_loss = avg_vloss
-                torch.save(self.net.state_dict(), 'models/' + self.name + '_batch_size_' + str(self.batch_size)+"/"+'best_model_' + self.name + '_batch_size_' + str(self.batch_size) + '.pt')
+                torch.save(self.net.state_dict(),
+                           'models/' + self.name + '_batch_size_' + str(self.batch_size) + "/" + 'best_model_' + self.name + '_batch_size_' + str(
+                               self.batch_size) + '.pt')
                 counter = 0
             else:
                 counter = counter + 1
@@ -222,40 +228,86 @@ class optimizer:
                 self.time_diff = f"{int(minutes)}m {int(seconds)}s"
                 print("Early stopping at epoch {} model name {}".format(epoch, self.name))
                 break
-        torch.save(self.net.state_dict(), self.name + '_batch_size' + str(self.batch_size) + '.pt')
+        torch.save(self.net.state_dict(), 'models/' + self.name + '_batch_size_' + str(self.batch_size) + "/" + self.name + '_batch_size' +
+                   str(self.batch_size) + str(time.time()) + '.pt')
         print('Finished Training')
         self.writer.flush()
         self.write_to_file(flag=False)
 
-    def test_model(self, df):
-        # TODO make it into sequential data according to length of window for all of the drive.
-        drive_seq = []
-        criterion = torch.nn.BCELoss()
-        running_tloss, running_true_accuracy = 0.0, 0.0
+
+def test_model(test_loader, given_model, opts):
+    net = given_model
+    average_loss_test, true_positive_arr_06, false_pos_array_06 = [], [], []
+    true_positive_arr_07, false_pos_array_07 = [], []
+    writer = SummaryWriter('test/' + opts.model_name + '_batch_size_' + str(opts.batch_size))
+    criterion = torch.nn.BCELoss()
+    for i in range(0,5):
+        running_tloss, true_positive_running_06, false_positive_running_06 = 0.0, 0.0, 0.0
+        true_positive_running_07, false_positive_running_07 = 0.0, 0.0
         with torch.no_grad():
-            self.net.train(False)  # Don't need to track gradients for validation
-            for j, tdata in enumerate(drive_seq,
-                                      0):  # should have a loop for all of the seqential I will have for test. # let's iteratte on [X, sequencelength, features] (Should do all of the preprocess for it)
+            for j, tdata in enumerate(test_loader, 0):
                 tinputs, tlabels = tdata
-                toutputs = self.net(tinputs)
+                toutputs = net(tinputs)
                 tloss = criterion(toutputs.squeeze(1), tlabels)
                 running_tloss += tloss.item()
-                cm = confusion_matrix(y_true, y_pred)
+                vector_3 = np.where(toutputs.numpy().squeeze(1) > 0.6, True, False)
+                vector_5 = np.where(toutputs.numpy().squeeze(1) > 0.7, True, False)
+                cm_06 = confusion_matrix(tlabels, vector_3, normalize='true')
+                cm_07 = confusion_matrix(tlabels, vector_5, normalize='true')
+                from sklearn import metrics
+                from sklearn.metrics import ConfusionMatrixDisplay
+                # cm_display_06 = metrics.ConfusionMatrixDisplay(confusion_matrix=cm_06, display_labels=[False, True])
+                # cm_display_07 = metrics.ConfusionMatrixDisplay(confusion_matrix=cm_07, display_labels=[False, True])
 
-                tp = cm[1][1]
-                fp = cm[0][1]
-            avg_tloss = running_tloss / len(self.test_loader)
-            avg_accuracy_prediction_1 = 100 * test_acc_1
-            avg_accuracy_prediction_3 = 100 * test_acc_3
-            avg_accuracy_prediction_5 = 100 * test_acc_5
+                # Create the figure and subplots
+                fig, axs = plt.subplots(1, 2, figsize=(12, 4))
+                # Plot each confusion matrix
+                ConfusionMatrixDisplay(cm_06, display_labels=[False, True]).plot(ax=axs[0], cmap=plt.cm.Blues)
+                ConfusionMatrixDisplay(cm_07, display_labels=[False, True]).plot(ax=axs[1], cmap=plt.cm.Blues)
+                axs[0].set_title("Threshold 06")
+                axs[1].set_title("Threshold 07")
+                # plt.title("Sequence 64")
+                plt.savefig("sequence-128-20.pdf", dpi=300)
+                plt.show()
+
+
+                true_positive_06 = cm_06[1][1]
+                false_positive_06 = cm_06[0][1]
+                true_positive_07 = cm_07[1][1]
+                false_positive_07 = cm_07[0][1]
+                true_positive_running_06 += true_positive_06
+                false_positive_running_06 += false_positive_06
+                true_positive_running_07 += true_positive_07
+                false_positive_running_07 += false_positive_07
+            avg_tloss = running_tloss / len(test_loader)
+            avg_tpositive_06 =  true_positive_running_06 / len(test_loader)
+            avg_fpositive_06 = false_positive_running_06 / len(test_loader)
+            avg_tpositive_07 = true_positive_running_07 / len(test_loader)
+            avg_fpositive_07 = false_positive_running_07 / len(test_loader)
+            average_loss_test.append(avg_tloss)
+            true_positive_arr_06.append( true_positive_06)
+            false_pos_array_06.append( false_positive_06)
+            true_positive_arr_07.append(  true_positive_07)
+            false_pos_array_07.append(false_positive_07)
             # Log the running loss averaged per batch
-            self.writer.add_scalars('Test set', {'Test loss': avg_tloss}, j + 1)
-            self.writer.add_scalars('True accuracy Test set', {'accuracy-0.5': avg_accuracy_prediction_1,
-                                                               'accuracy-0.6': avg_accuracy_prediction_3,
-                                                               'accuracy-0.7': avg_accuracy_prediction_5}, j + 1)
-        self.average_loss_test.append(avg_tloss)
-        self.avg_accuracy_prediction_1_test.append(avg_accuracy_prediction_1)
-        self.avg_accuracy_prediction_3_test.append(avg_accuracy_prediction_3)
-        self.avg_accuracy_prediction_5_test.append(avg_accuracy_prediction_5)
-        self.writer.flush()
-        self.write_to_file(flag=True)
+            writer.add_scalars('Test set', {'Test loss': avg_tloss}, j + 1)
+            writer.add_scalars('True accuracy Test set', {'true positive 06':  avg_tpositive_06,
+                                                          'false positive 06':  avg_fpositive_06,
+                                                          'true positive 07': avg_tpositive_07,
+                                                          'false positive 07':  avg_fpositive_07}, j + 1)
+
+    writer.flush()
+    write_test_to_file(true_positive=true_positive_arr_06, false_pos=false_pos_array_06,true_positive2=true_positive_arr_07,
+                       false_pos2=false_pos_array_07,test_loss=average_loss_test,test_loader=test_loader, seq_len=opts.sequence_length)
+
+
+def write_test_to_file(true_positive, false_pos,true_positive2, false_pos2, test_loss,test_loader,seq_len):
+    df_validation = pd.DataFrame({'avg_test_loss': test_loss,
+                                  'tp06': true_positive,
+                                  'fp06': false_pos,
+                                  'tp07': true_positive2,
+                                  'fp07': false_pos2,
+                                  'testl_samples_batches_count': len(test_loader),
+                                  'testl_sample_count': len(test_loader.dataset)})
+    df_validation.to_csv(
+            'test/' + str(seq_len)  + str(time.time()) + '.csv', index=False)

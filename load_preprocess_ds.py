@@ -10,7 +10,8 @@ import seaborn as sns
 
 def init_drives_dataset(pickle_name, number_of_drives_for_ds):
     big_df = pd.read_pickle(pickle_name)
-    big_df = big_df[big_df['date'] >= '20221201']  # According to the drives specific latest with DriveU algo.
+    big_df = big_df[big_df['date'] >= '20230208']
+    # big_df = big_df[big_df['date'] >= '20221201']  # According to the drives specific latest with DriveU algo.
     big_df.drop(columns=['imei', 'changes', 'end_state', 'operator', 'drive_id', 'rssi', 'latency_max', 'latency_mean', 'qp_mean', 'frame_lost',
                          'frame_latency_mean'], inplace=True, axis=1)
     # plt.figure(figsize=(15, 10))

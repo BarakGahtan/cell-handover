@@ -11,6 +11,8 @@ from matplotlib import pyplot as plt
 from sklearn.preprocessing import MinMaxScaler, LabelEncoder
 from torch import nn
 import pickle
+
+import architecture
 import input_parser
 import training
 from load_preprocess_ds import init_drives_dataset, get_cells_per_drive_in_dataset, prepare_switchover_col, \
@@ -52,12 +54,11 @@ if __name__ == "__main__":
             prepare_data_sets(data_set_concat_train, SEQ_LEN=opts.sequence_length, balanced=opts.bdataset, name=opts.model_name)
         exit()
     else:
-        X_train_seq = training.make_Tensor(np.array(pickle.load(open('datasets/x_train_' + opts.model_name + '.pkl', "rb"))))
-        y_train_label = training.make_Tensor(np.array(pickle.load(open('datasets/y_train_' + opts.model_name + '.pkl', "rb"))))
-        x_val_seq = training.make_Tensor(np.array(pickle.load(open('datasets/X_val_' + opts.model_name + '.pkl', "rb"))))
-        y_val_label = training.make_Tensor(np.array(pickle.load(open('datasets/y_val_' + opts.model_name + '.pkl', "rb"))))
-        # x_test_seq = training.make_Tensor(np.array(pickle.load(open('datasets/X_test_' + opts.model_name + '.pkl', "rb"))))
-        # y_test_label = training.make_Tensor(np.array(pickle.load(open('datasets/y_test_' + opts.model_name + '.pkl', "rb"))))
+        x=5
+        # X_train_seq = training.make_Tensor(np.array(pickle.load(open('datasets/x_train_' + opts.model_name + '.pkl', "rb"))))
+        # y_train_label = training.make_Tensor(np.array(pickle.load(open('datasets/y_train_' + opts.model_name + '.pkl', "rb"))))
+        # x_val_seq = training.make_Tensor(np.array(pickle.load(open('datasets/X_val_' + opts.model_name + '.pkl', "rb"))))
+        # y_val_label = training.make_Tensor(np.array(pickle.load(open('datasets/y_val_' + opts.model_name + '.pkl', "rb"))))
 
     # seq = pickle.load(open('x_data_eli1.pkl', "rb"))
     # y_data = pickle.load(open('y_data_eli1.pkl', "rb"))
@@ -82,16 +83,22 @@ if __name__ == "__main__":
         train_loader = DataLoader(train_data_set, batch_size=opts.batch_size, shuffle=False, drop_last=True)
         val_data_set = TensorDataset(x_val_seq, y_val_label)
         val_loader = DataLoader(val_data_set, batch_size=opts.batch_size, shuffle=False, drop_last=True)
-        # test_data_set = TensorDataset(x_test_seq, y_test_label)
-        # test_loader = DataLoader(test_data_set, batch_size=opts.batch_size, shuffle=False, drop_last=True)
         features_count = X_train_seq.shape[2]
         training_class = training.optimizer(opts.model_name, opts.epoch_number, train_loader, val_loader, val_loader, opts.sequence_length,
                                             features_count, opts.neuralnetwork_size, opts.learn_rate, opts.batch_size)
         training_class.main_training_loop()
         print("Finished training model " + opts.model_name + "_" + str(opts.batch_size))
-        # training_class.test_model()
-        # print("Finished testing model " + opts.model_name + "_" + str(opts.batch_size))
+
     else:
+        x_test_seq = training.make_Tensor(np.array(pickle.load(open('x_test_seq_128'+'.pkl', "rb"))))
+        y_test_label = training.make_Tensor(np.array(pickle.load(open('y_test_seq_128'+'.pkl', "rb"))))
+        test_data_set = TensorDataset(x_test_seq, y_test_label)
+        test_loader = DataLoader(test_data_set, batch_size=467, shuffle=False, drop_last=True)
+        number_of_features = x_test_seq.shape[2]
+        model = architecture.cnn_lstm_hybrid(features=number_of_features)
+        model.load_state_dict(torch.load('best_model_seq_128_20_all_imsi_batch_size_128.pt'))
+        training.test_model(test_loader=test_loader, given_model=model, opts=opts)
+        print("Finished testing model " + opts.model_name + "_" + str(opts.batch_size))
         print("finished making a data set.")
 
     # cnn_model = cnn1d_model(seq_len=SEQ_LEN, number_of_features=features_count)  # number features is the seqeunce len * max pooling of Conv1D
