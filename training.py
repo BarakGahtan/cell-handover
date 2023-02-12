@@ -119,7 +119,7 @@ class optimizer:
         self.epoch_number = []
         self.time_diff = 0
         self.batch_size = batch_size
-        self.writer = SummaryWriter('models_imei_1/' + self.name + '_batch_size_' + str(self.batch_size))
+        self.writer = SummaryWriter('models/' + self.name + '_batch_size_' + str(self.batch_size))
 
     def write_to_file(self, flag):
         df_validation = pd.DataFrame({'avg_validation_loss': self.average_loss_validation,

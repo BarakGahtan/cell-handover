@@ -29,7 +29,7 @@ class cnn_lstm_hybrid(nn.Module):
 
         self.lstm = nn.LSTM(input_size=128,
                             hidden_size=256,
-                            num_layers=1,
+                            num_layers=2,
                             bias=True,
                             bidirectional=False,
                             batch_first=True)
