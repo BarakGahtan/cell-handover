@@ -287,18 +287,24 @@ class optimizer:
             train_loss /= len(self.train_loader)
             self.net.eval()
             val_loss = 0
+            running_validation_predition = 0.0
+            running_validation_labels = 0.0
             with torch.no_grad():
                 for j, vdata in enumerate(self.validation_loader, 0):
                     vinputs, vlabels = vdata
                     voutputs = self.net(vinputs)
                     vloss = criterion(voutputs.squeeze(1), vlabels)
                     val_loss += vloss.item()
-                    self.predicted_latency_values.append(np.array(voutputs.squeeze(1).tolist()).mean())  # not sure if should be with mean
-                    self.real_latency_values.append(np.array(vlabels.tolist()).mean())
+                    running_validation_predition += np.array(voutputs.squeeze(1).tolist()).mean()
+                    running_validation_labels += np.array(vlabels.tolist()).mean()
             val_loss /= len(self.validation_loader)
+            running_validation_predition /= len(self.validation_loader)
+            running_validation_labels /= len(self.validation_loader)
             self.writer.add_scalars('Training vs. Validation Loss', {'Training': train_loss, 'Validation': val_loss}, epoch + 1)
             self.average_loss_training.append(train_loss)
             self.average_loss_validation.append(val_loss)
+            self.predicted_latency_values.append(running_validation_predition)
+            self.real_latency_values.append(running_validation_labels)
             if val_loss < best_val_loss:  # Save the best model based on validation loss
                 best_val_loss = val_loss
                 torch.save(self.net.state_dict(),
