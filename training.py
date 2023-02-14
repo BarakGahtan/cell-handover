@@ -40,7 +40,7 @@ def balance_data_set(seq, seq_label):
     # majority_label = majority_label.reshape(majority_label.shape[0],-1)
 
 
-def prepare_data_sets(data_frame, SEQ_LEN, balanced, name):
+def prepare_data_sets(data_frame, SEQ_LEN, balanced, name, label):
     if balanced:  # under sampling
         so_idxs = data_frame.index[data_frame['switchover_global'] == 1].tolist()
         no_so_idxs = [random.randint(so_idxs[0], so_idxs[-1]) for _ in range(len(so_idxs)) if random.randint(so_idxs[0], so_idxs[-1]) not in so_idxs]
@@ -59,38 +59,50 @@ def prepare_data_sets(data_frame, SEQ_LEN, balanced, name):
         # plt.show()
         balanced_indexes = [j for i in [no_so_idxs, so_idxs] for j in i]
         random.shuffle(balanced_indexes)
-        xs, ys = [], []
-        for i in range(len(balanced_indexes)):
-            x = data_frame.iloc[balanced_indexes[i] - SEQ_LEN:balanced_indexes[i]].drop(["switchover_global"], axis=1)
-            y = data_frame["switchover_global"].iloc[balanced_indexes[i]]
-            x.dropna(inplace=True)
-            if len(x) == SEQ_LEN:
-                xs.append(x)
-                ys.append(y)
-        xs = np.array(xs)
-        ys = np.array(ys)
-        data_set_size = xs.shape[0]
-        train_size = int(data_set_size * 0.8)
-        test_size = int(int(data_set_size - train_size) / 2)
-        x_train, y_train = copy.copy(xs[:train_size]), copy.copy(ys[:train_size])
-        X_val, y_val = copy.copy(xs[train_size:train_size + test_size]), copy.copy(ys[train_size:train_size + test_size])
-        X_test, y_test = copy.copy(xs[train_size + test_size:]), copy.copy(ys[train_size + test_size:])
+        if label == 0:
+            xs, ys = create_sequence(data_frame, SEQ_LEN, "latency_mean")
+            xs = np.array(xs)
+            ys = np.array(ys)
+            data_set_size = xs.shape[0]
+            train_size = int(data_set_size * 0.8)
+            test_size = int(int(data_set_size - train_size) / 2)
+            x_train, y_train = copy.copy(xs[:train_size]), copy.copy(ys[:train_size])
+            X_val, y_val = copy.copy(xs[train_size:train_size + test_size]), copy.copy(ys[train_size:train_size + test_size])
+            # X_test, y_test = copy.copy(xs[train_size + test_size:]), copy.copy(ys[train_size + test_size:])
+        else:
+            xs, ys = [], []
+            for i in range(len(balanced_indexes)):
+                x = data_frame.iloc[balanced_indexes[i] - SEQ_LEN - 1:balanced_indexes[i] - 1].drop(["switchover_global"],
+                                                                                                    axis=1)  # that way it is to predict 1 second ahead.
+                y = data_frame["switchover_global"].iloc[balanced_indexes[i]]
+                x.dropna(inplace=True)
+                if len(x) == SEQ_LEN:
+                    xs.append(x)
+                    ys.append(y)
+            xs = np.array(xs)
+            ys = np.array(ys)
+            data_set_size = xs.shape[0]
+            train_size = int(data_set_size * 0.8)
+            test_size = int(int(data_set_size - train_size) / 2)
+            x_train, y_train = copy.copy(xs[:train_size]), copy.copy(ys[:train_size])
+            X_val, y_val = copy.copy(xs[train_size:train_size + test_size]), copy.copy(ys[train_size:train_size + test_size])
+            # X_test, y_test = copy.copy(xs[train_size + test_size:]), copy.copy(ys[train_size + test_size:])
     else:  # balance with SMOTE
         seq, seq_label = create_sequence(data_frame, SEQ_LEN)
         seq, seq_label = balance_data_set(seq, seq_label)  # over sampled
         data_set_size = seq.shape[0]
-        train_size = int(data_set_size * 1)
+        train_size = int(data_set_size * 0.8)
         test_size = int(int(data_set_size - train_size))
         x_train, y_train = copy.copy(seq[:train_size]), copy.copy(seq_label[:train_size])
         X_val, y_val = copy.copy(seq[train_size:train_size + test_size]), copy.copy(
             seq_label[train_size:train_size + test_size])
     pickle.dump(x_train, open('x_train_test_' + name + '.pkl', "wb"))
     pickle.dump(y_train, open('y_train_test_' + name + '.pkl', "wb"))
-    # pickle.dump(X_val, open('X_val_' + name + '.pkl', "wb"))
-    # pickle.dump(y_val, open('y_val_' + name + '.pkl', "wb"))
+    pickle.dump(X_val, open('X_val_' + name + '.pkl', "wb"))
+    pickle.dump(y_val, open('y_val_' + name + '.pkl', "wb"))
     # pickle.dump(X_test, open('X_test_' + name + '.pkl', "wb"))
     # pickle.dump(y_test, open('y_test_' + name + '.pkl', "wb"))
-    return make_Tensor(x_train), make_Tensor(y_train)  # , make_Tensor(X_val), make_Tensor(y_val)
+    return make_Tensor(x_train), make_Tensor(y_train), make_Tensor(X_val), make_Tensor(y_val)
     # return make_Tensor(x_train), make_Tensor(y_train), make_Tensor(X_val), make_Tensor(y_val), make_Tensor(X_test), \
     #     make_Tensor(y_test)
     # return x_train, y_train, X_val, y_val, X_test, y_test
@@ -98,7 +110,7 @@ def prepare_data_sets(data_frame, SEQ_LEN, balanced, name):
 
 class optimizer:
     def __init__(self, name, epochs, training_loader, validation_loader, test_loader, seq_len, number_of_features, hidden_size, learning_rate,
-                 batch_size):
+                 batch_size, label):
         self.name = name
         self.train_loader = training_loader
         self.epochs = epochs
@@ -107,7 +119,7 @@ class optimizer:
         self.sequence_len = seq_len
         self.number_of_features = number_of_features
         self.hidden_size = hidden_size
-        self.net = architecture.cnn_lstm_hybrid(features=number_of_features)
+        self.net = architecture.cnn_lstm_hybrid(features=number_of_features, label=label)
         self.learn_rate = learning_rate
         self.average_loss_validation, self.average_loss_training, self.average_loss_test = [], [], []
         self.avg_accuracy_prediction_1 = []
@@ -116,12 +128,14 @@ class optimizer:
         self.avg_accuracy_prediction_1_test = []
         self.avg_accuracy_prediction_3_test = []
         self.avg_accuracy_prediction_5_test = []
+        self.predicted_latency_values, self.real_latency_values = [], []
         self.epoch_number = []
         self.time_diff = 0
         self.batch_size = batch_size
+        self.label = label
         self.writer = SummaryWriter('models/' + self.name + '_batch_size_' + str(self.batch_size))
 
-    def write_to_file(self, flag):
+    def write_to_file_switchover(self, flag):
         df_validation = pd.DataFrame({'avg_validation_loss': self.average_loss_validation,
                                       'avg_training_loss': self.average_loss_training,
                                       'accuracy_05_val': self.avg_accuracy_prediction_1,
@@ -152,7 +166,22 @@ class optimizer:
                 'models/' + self.name + '_batch_size_' + str(self.batch_size) + "/" + self.name + '_batch_size_' + str(self.batch_size) + '_' + str(
                     time.time()) + '.csv', index=False)
 
-    def main_training_loop(self):
+    def write_to_file_latency(self):
+        df_validation = pd.DataFrame({'avg_validation_loss': self.average_loss_validation,
+                                      'avg_training_loss': self.average_loss_training,
+                                      'predictions': self.predicted_latency_values,
+                                      'real_latency': self.real_latency_values,
+                                      'epochs': self.epoch_number,
+                                      'training time': self.time_diff,
+                                      'tl_samples_batches_count': len(self.train_loader),
+                                      'tl_sample_count': len(self.train_loader.dataset),
+                                      'vl_samples_batches_count': len(self.validation_loader),
+                                      'vl_sample_count': len(self.validation_loader.dataset)})
+        df_validation.to_csv(
+            'models/' + self.name + '_batch_size_' + str(self.batch_size) + "/" + self.name + '_batch_size_' + str(self.batch_size) + '_' + str(
+                time.time()) + '.csv', index=False)
+
+    def main_training_loop_switchover(self):
         avg_vloss = float('inf')
         criterion = torch.nn.BCELoss()
         optim_to_learn = optim.Adam(self.net.parameters(), lr=self.learn_rate)
@@ -232,7 +261,63 @@ class optimizer:
                    str(self.batch_size) + str(time.time()) + '.pt')
         print('Finished Training')
         self.writer.flush()
-        self.write_to_file(flag=False)
+        self.write_to_file_switchover(flag=False)
+
+    def main_training_loop_latency(self):
+        criterion = torch.nn.MSELoss()
+        optim_to_learn = optim.Adam(self.net.parameters(), lr=self.learn_rate)
+        best_val_loss = float('inf')
+        counter = 0
+        patience = 15
+        # To view, start TensorBoard on the command line with:
+        #   tensorboard --logdir=model/seq_64_20_all_imsi_batch_size_256
+        # ...and open a browser tab to http://localhost:6006/
+        start_time = time.time()
+        for epoch in range(self.epochs):  # loop over the dataset multiple times
+            train_loss = 0.0
+            self.net.train()
+            for i, data in enumerate(self.train_loader, 0):
+                inputs, labels = data
+                optim_to_learn.zero_grad()
+                outputs = self.net(inputs)
+                loss = criterion(outputs.squeeze(1), labels)
+                loss.backward()
+                optim_to_learn.step()
+                train_loss += loss.item()
+            train_loss /= len(self.train_loader)
+            self.net.eval()
+            val_loss = 0
+            with torch.no_grad():
+                for j, vdata in enumerate(self.validation_loader, 0):
+                    vinputs, vlabels = vdata
+                    voutputs = self.net(vinputs)
+                    vloss = criterion(voutputs.squeeze(1), vlabels)
+                    val_loss += vloss.item()
+                    self.predicted_latency_values.append(np.array(voutputs.squeeze(1).tolist()).mean())  # not sure if should be with mean
+                    self.real_latency_values.append(np.array(vlabels.tolist()).mean())
+            val_loss /= len(self.validation_loader)
+            self.writer.add_scalars('Training vs. Validation Loss', {'Training': train_loss, 'Validation': val_loss}, epoch + 1)
+            self.average_loss_training.append(train_loss)
+            self.average_loss_validation.append(val_loss)
+            if val_loss < best_val_loss:  # Save the best model based on validation loss
+                best_val_loss = val_loss
+                torch.save(self.net.state_dict(),
+                           'models/' + self.name + '_batch_size_' + str(self.batch_size) + "/" + 'best_model_' + self.name + '_batch_size_' + str(
+                               self.batch_size) + '.pt')
+                counter = 0
+            else:
+                counter = counter + 1
+            # Stop training if the validation loss hasn't improved for a certain number of epochs (patience)
+            if counter >= patience:
+                end_time = time.time()
+                self.time_diff = end_time - start_time
+                minutes, seconds = divmod(self.time_diff, 60)
+                self.time_diff = f"{int(minutes)}m {int(seconds)}s"
+                print("Early stopping at epoch {} model name {}".format(epoch, self.name))
+                break
+        print('Finished Training')
+        self.writer.flush()
+        self.write_to_file_latency()
 
 
 def test_model(test_loader, given_model, opts):
@@ -241,7 +326,7 @@ def test_model(test_loader, given_model, opts):
     true_positive_arr_07, false_pos_array_07 = [], []
     writer = SummaryWriter('test/' + opts.model_name + '_batch_size_' + str(opts.batch_size))
     criterion = torch.nn.BCELoss()
-    for i in range(0,5):
+    for i in range(0, 5):
         running_tloss, true_positive_running_06, false_positive_running_06 = 0.0, 0.0, 0.0
         true_positive_running_07, false_positive_running_07 = 0.0, 0.0
         with torch.no_grad():
@@ -270,7 +355,6 @@ def test_model(test_loader, given_model, opts):
                 plt.savefig("sequence-128-20.pdf", dpi=300)
                 plt.show()
 
-
                 true_positive_06 = cm_06[1][1]
                 false_positive_06 = cm_06[0][1]
                 true_positive_07 = cm_07[1][1]
@@ -280,28 +364,28 @@ def test_model(test_loader, given_model, opts):
                 true_positive_running_07 += true_positive_07
                 false_positive_running_07 += false_positive_07
             avg_tloss = running_tloss / len(test_loader)
-            avg_tpositive_06 =  true_positive_running_06 / len(test_loader)
+            avg_tpositive_06 = true_positive_running_06 / len(test_loader)
             avg_fpositive_06 = false_positive_running_06 / len(test_loader)
             avg_tpositive_07 = true_positive_running_07 / len(test_loader)
             avg_fpositive_07 = false_positive_running_07 / len(test_loader)
             average_loss_test.append(avg_tloss)
-            true_positive_arr_06.append( true_positive_06)
-            false_pos_array_06.append( false_positive_06)
-            true_positive_arr_07.append(  true_positive_07)
+            true_positive_arr_06.append(true_positive_06)
+            false_pos_array_06.append(false_positive_06)
+            true_positive_arr_07.append(true_positive_07)
             false_pos_array_07.append(false_positive_07)
             # Log the running loss averaged per batch
             writer.add_scalars('Test set', {'Test loss': avg_tloss}, j + 1)
-            writer.add_scalars('True accuracy Test set', {'true positive 06':  avg_tpositive_06,
-                                                          'false positive 06':  avg_fpositive_06,
+            writer.add_scalars('True accuracy Test set', {'true positive 06': avg_tpositive_06,
+                                                          'false positive 06': avg_fpositive_06,
                                                           'true positive 07': avg_tpositive_07,
-                                                          'false positive 07':  avg_fpositive_07}, j + 1)
+                                                          'false positive 07': avg_fpositive_07}, j + 1)
 
     writer.flush()
-    write_test_to_file(true_positive=true_positive_arr_06, false_pos=false_pos_array_06,true_positive2=true_positive_arr_07,
-                       false_pos2=false_pos_array_07,test_loss=average_loss_test,test_loader=test_loader, seq_len=opts.sequence_length)
+    write_test_to_file(true_positive=true_positive_arr_06, false_pos=false_pos_array_06, true_positive2=true_positive_arr_07,
+                       false_pos2=false_pos_array_07, test_loss=average_loss_test, test_loader=test_loader, seq_len=opts.sequence_length)
 
 
-def write_test_to_file(true_positive, false_pos,true_positive2, false_pos2, test_loss,test_loader,seq_len):
+def write_test_to_file(true_positive, false_pos, true_positive2, false_pos2, test_loss, test_loader, seq_len):
     df_validation = pd.DataFrame({'avg_test_loss': test_loss,
                                   'tp06': true_positive,
                                   'fp06': false_pos,
@@ -310,4 +394,4 @@ def write_test_to_file(true_positive, false_pos,true_positive2, false_pos2, test
                                   'testl_samples_batches_count': len(test_loader),
                                   'testl_sample_count': len(test_loader.dataset)})
     df_validation.to_csv(
-            'test/' + str(seq_len)  + str(time.time()) + '.csv', index=False)
+        'test/' + str(seq_len) + str(time.time()) + '.csv', index=False)

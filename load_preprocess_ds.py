@@ -12,7 +12,7 @@ def init_drives_dataset(pickle_name, number_of_drives_for_ds):
     big_df = pd.read_pickle(pickle_name)
     big_df = big_df[big_df['date'] >= '20230208']
     # big_df = big_df[big_df['date'] >= '20221201']  # According to the drives specific latest with DriveU algo.
-    big_df.drop(columns=['imei', 'changes', 'end_state', 'operator', 'drive_id', 'rssi', 'latency_max', 'latency_mean', 'qp_mean', 'frame_lost',
+    big_df.drop(columns=['imei', 'changes', 'end_state', 'operator', 'drive_id', 'rssi', 'latency_max', 'qp_mean', 'frame_lost',
                          'frame_latency_mean'], inplace=True, axis=1)
     # plt.figure(figsize=(15, 10))
     cor = big_df.corr().abs()
@@ -97,7 +97,7 @@ def fill_missing_data_per_col(df, col_name):
     return df
 
 
-def preprocess_features(data_dict):
+def preprocess_features(data_dict, label):  # label is 1 if switchover, 0 if latency
     for key in data_dict.keys():
         # data_dict[key].drop(columns=['imei', 'drive_id', 'changes', 'end_state'], inplace=True, axis=1)
         col_to_fill_missing_values = data_dict[key].columns.tolist()
@@ -113,28 +113,33 @@ def preprocess_features(data_dict):
         data_dict[key].drop(["date", "time", "imsi", "globalcellid"], axis=1, inplace=True)
         normalized_cols = data_dict[key].columns.tolist()
         scaler = MinMaxScaler()
-        for col in normalized_cols:
-            if col == 'switchover_global':
-                continue
-            data_dict[key][col] = pd.DataFrame(scaler.fit_transform(data_dict[key][[col]]))
-
+        if label == 1:
+            for col in normalized_cols:
+                if col == 'switchover_global':
+                    continue
+                data_dict[key][col] = pd.DataFrame(scaler.fit_transform(data_dict[key][[col]]))
+        else:
+            for col in normalized_cols:
+                if col == 'latency_mean':
+                    continue
+                data_dict[key][col] = pd.DataFrame(scaler.fit_transform(data_dict[key][[col]]))
         # data_dict[key] = copy.copy(data_dict[key][normalized_cols])
         x = 5
 
     return data_dict
 
 
-def create_sequence(data_dict, seq_length):
+def create_sequence(data_dict, seq_length, label):
     xs = []
     ys = []
-    for i in range(len(data_dict) - seq_length):
-        x = data_dict.drop(["switchover_global"], axis=1).iloc[i:(i + seq_length)]
-        y = data_dict["switchover_global"].iloc[i + seq_length]
+    for i in range(len(data_dict) - seq_length - 1):
+        x = data_dict.drop([label], axis=1).iloc[i:(i + seq_length)]
+        y = data_dict[label].iloc[i + seq_length + 1]  # predict one second ahead
         x.dropna(inplace=True)
         if len(x) == seq_length:
             xs.append(x)
             ys.append(y)
-    return np.array(xs), np.array(ys)
+    return xs, ys
 
 
 def training_sets_init(given_dict, max_switchover, imsi_number):

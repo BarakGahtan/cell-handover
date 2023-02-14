@@ -34,50 +34,21 @@ if __name__ == "__main__":
         drives_by_imsi_dict = prepare_switchover_col(returned_drives_by_imei_dict_train)
         training_data = training_sets_init(drives_by_imsi_dict, opts.max_switch_over, opts.max_data_imsi)
         # correlated_data_dict_train = normalize_correlate_features(drives_by_imei_dict_train)
-        correlated_data_dict_train = preprocess_features(training_data)
+        correlated_data_dict_train = preprocess_features(training_data, label=opts.label)  # label = 1 = switchover, 0 = latency
         data_set_concat_train = pd.concat(correlated_data_dict_train, axis=0).reset_index()
-        # sum = data_set_concat_train['switchover_global'].sum()
-        # len_of_dataset = len(data_set_concat_train['switchover_global'])
-        # perc = 100 * (sum / len_of_dataset)
-        #
-        # labels = ['Switchover', 'No Switchover']
-        # sizes = [1.7, 100 - 1.7]
-        # fig, ax = plt.subplots()
-        # ax.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=200)
-        # ax.axis('equal')
-        # plt.title("Switchover Distribution")
-        # plt.savefig("SODist.pdf", dpi=300)
         data_set_concat_train.drop(["level_0", "level_1"], axis=1, inplace=True)
         # one_hot = pd.get_dummies(data_set_concat_train['operator'], prefix='operator')  # make the operator into 1 hot encoding.
         # data_set_concat_train = pd.concat([data_set_concat_train, one_hot], axis=1)  # Concatenate the original DataFrame and the one-hot encoding
         X_train_seq, y_train_label, x_val_seq, y_val_label = \
-            prepare_data_sets(data_set_concat_train, SEQ_LEN=opts.sequence_length, balanced=opts.bdataset, name=opts.model_name)
+            prepare_data_sets(data_set_concat_train, SEQ_LEN=opts.sequence_length, balanced=opts.bdataset, name=opts.model_name, label=opts.label)
         exit()
-    else:
-        x=5
-        # X_train_seq = training.make_Tensor(np.array(pickle.load(open('datasets/x_train_' + opts.model_name + '.pkl', "rb"))))
-        # y_train_label = training.make_Tensor(np.array(pickle.load(open('datasets/y_train_' + opts.model_name + '.pkl', "rb"))))
-        # x_val_seq = training.make_Tensor(np.array(pickle.load(open('datasets/X_val_' + opts.model_name + '.pkl', "rb"))))
-        # y_val_label = training.make_Tensor(np.array(pickle.load(open('datasets/y_val_' + opts.model_name + '.pkl', "rb"))))
+    else:  # load from saved data sets and train the model.
+        x = 5
+        X_train_seq = training.make_Tensor(np.array(pickle.load(open('datasets-latency/x_train_' + opts.model_name + '.pkl', "rb"))))
+        y_train_label = training.make_Tensor(np.array(pickle.load(open('datasets-latency/y_train_' + opts.model_name + '.pkl', "rb"))))
+        x_val_seq = training.make_Tensor(np.array(pickle.load(open('datasets-latency/X_val_' + opts.model_name + '.pkl', "rb"))))
+        y_val_label = training.make_Tensor(np.array(pickle.load(open('datasets-latency/y_val_' + opts.model_name + '.pkl', "rb"))))
 
-    # seq = pickle.load(open('x_data_eli1.pkl', "rb"))
-    # y_data = pickle.load(open('y_data_eli1.pkl', "rb"))
-    # seq_label = np.array(LabelEncoder().fit_transform(y_data)).astype("float32")
-    # seq = np.array(seq)
-    # data_set_size = seq.shape[0]
-    # train_size = int(data_set_size * 0.8)
-    # test_size = int(int(data_set_size - train_size) / 2)
-    # x_train, y_train = copy.copy(seq[:train_size]), copy.copy(seq_label[:train_size])
-    # X_val, y_val = copy.copy(seq[train_size:train_size + test_size]), copy.copy(
-    #     seq_label[train_size:train_size + test_size])
-    # X_test, y_test = copy.copy(seq[train_size + test_size:]), copy.copy(
-    #     seq_label[train_size + test_size:])
-    # X_train_seq = training.make_Tensor(x_train)
-    # y_train_label = training.make_Tensor(y_train)
-    # x_val_seq = training.make_Tensor(X_val)
-    # y_val_label = training.make_Tensor(y_val)
-    # x_test_seq = training.make_Tensor(X_test)
-    # y_test_label = training.make_Tensor(y_test)
     if opts.to_train == 1:
         train_data_set = TensorDataset(X_train_seq, y_train_label)
         train_loader = DataLoader(train_data_set, batch_size=opts.batch_size, shuffle=False, drop_last=True)
@@ -85,13 +56,16 @@ if __name__ == "__main__":
         val_loader = DataLoader(val_data_set, batch_size=opts.batch_size, shuffle=False, drop_last=True)
         features_count = X_train_seq.shape[2]
         training_class = training.optimizer(opts.model_name, opts.epoch_number, train_loader, val_loader, val_loader, opts.sequence_length,
-                                            features_count, opts.neuralnetwork_size, opts.learn_rate, opts.batch_size)
-        training_class.main_training_loop()
+                                            features_count, opts.neuralnetwork_size, opts.learn_rate, opts.batch_size, opts.label)
+        if opts.label == 0:
+            training_class.main_training_loop_latency()
+        else:
+            training_class.main_training_loop_switchover()
         print("Finished training model " + opts.model_name + "_" + str(opts.batch_size))
 
-    else:
-        x_test_seq = training.make_Tensor(np.array(pickle.load(open('x_test_seq_128'+'.pkl', "rb"))))
-        y_test_label = training.make_Tensor(np.array(pickle.load(open('y_test_seq_128'+'.pkl', "rb"))))
+    else:  # testing the model.
+        x_test_seq = training.make_Tensor(np.array(pickle.load(open('x_test_seq_128' + '.pkl', "rb"))))
+        y_test_label = training.make_Tensor(np.array(pickle.load(open('y_test_seq_128' + '.pkl', "rb"))))
         test_data_set = TensorDataset(x_test_seq, y_test_label)
         test_loader = DataLoader(test_data_set, batch_size=467, shuffle=False, drop_last=True)
         number_of_features = x_test_seq.shape[2]
@@ -100,29 +74,3 @@ if __name__ == "__main__":
         training.test_model(test_loader=test_loader, given_model=model, opts=opts)
         print("Finished testing model " + opts.model_name + "_" + str(opts.batch_size))
         print("finished making a data set.")
-
-    # cnn_model = cnn1d_model(seq_len=SEQ_LEN, number_of_features=features_count)  # number features is the seqeunce len * max pooling of Conv1D
-    # combined_model = architecture.cnn_lstm_combined(cnn_model, number_features=features_count,
-    #                                                 n_hidden=NN_LAYERS, seq_len=SEQ_LEN,
-    #                                                 n_layers=NN_LAYERS, cnn_enable=0)  # seq_len - delta t window to look back.
-    # # model, train_hist, val_hist = train_model(combined_model, X_train_seq, y_train_label, val_data=x_val_seq,
-    #                                           val_labels=y_val_label, lstm_flag=LSTM_FLAG)
-    # architecture.plot_train(train_hist, val_hist)
-
-    # learning_model.test_model(x_test_seq, y_test_label, model)
-
-    # SET TEST DATA
-    # drives_by_modem_test, returned_drives_by_imei_dict_test = init_drives_dataset('pickle_rick.pkl', DRIVE_NUM_TEST,
-    #                                                                               NUM_DRIVES)
-    # cells_per_drives_in_dataset_test, cells_dict_test = get_cells_per_drive_in_dataset(
-    #     returned_drives_by_imei_dict_test)
-    # drives_by_imei_dict_test = prepare_switchover_col(returned_drives_by_imei_dict_test)
-    # correlated_data_dict_test = normalize_correlate_features(drives_by_imei_dict_test)
-    # data_set_concat_test = pd.concat(correlated_data_dict_test, axis=0).reset_index()
-    # data_set_concat_test = data_set_concat_test.drop(["level_0", "level_1"], axis=1,
-    #                                                  inplace=True)  # should go into 1D-CNN MODEL
-    # n_timesteps, n_features, n_outputs = trainX.shape[1], trainX.shape[2], trainy.shape[1]
-
-    # drives_by_imei_dict, rsrp_dictionary = prepare_distance_to_cells(drives_by_imei_dict, cells_dict)
-    # visualize_drives(returned_drives_by_imei_dict_train, cells_per_drives_in_dataset_train)
-    # build_regression_model(drives_by_imei_dict_train)

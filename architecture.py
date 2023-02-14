@@ -9,14 +9,15 @@ from torch.nn import LogSoftmax
 
 
 class cnn_lstm_hybrid(nn.Module):
-    def __init__(self, features):
+    def __init__(self, features, label):
         super(cnn_lstm_hybrid, self).__init__()
+        self.label = label
         self.conv1d_1 = nn.Sequential(
             nn.Conv1d(in_channels=features,
-                                  out_channels=64,
-                                  kernel_size=3,
-                                  stride=1,
-                                  padding=1),
+                      out_channels=64,
+                      kernel_size=3,
+                      stride=1,
+                      padding=1),
             nn.ReLU()
         )
 
@@ -88,4 +89,8 @@ class cnn_lstm_hybrid(nn.Module):
         x = self.dense2(x)  # Shape : (B, 32)
 
         x = self.dense3(x)  # Shape : (B, O) // O = output => (B, 1)
-        return self.sigmoid(x)
+
+        if self.label == 0:
+            return x
+        else:
+            return self.sigmoid(x)
