@@ -171,8 +171,6 @@ class optimizer:
                                       'avg_training_loss': self.average_loss_training,
                                       'predictions': self.predicted_latency_values,
                                       'real_latency': self.real_latency_values,
-                                      'epochs': self.epoch_number,
-                                      'training time': self.time_diff,
                                       'tl_samples_batches_count': len(self.train_loader),
                                       'tl_sample_count': len(self.train_loader.dataset),
                                       'vl_samples_batches_count': len(self.validation_loader),
