@@ -30,14 +30,6 @@ def balance_data_set(seq, seq_label):
     oversampled_seq, oversampled_labels = sm.fit_resample(seq_data_reshaped_for_balancing, seq_label)
     oversampled_seq = oversampled_seq.reshape(oversampled_seq.shape[0], seq.shape[1], seq.shape[2])
     return oversampled_seq, oversampled_labels
-    # minority = np.array(minority)
-    # minority = minority.reshape(minority.shape[0],-1)
-    # minority_label = np.array(minority_label)
-    # minority_label = minority_label.reshape(minority_label.shape[0],-1)
-    # majority = np.array(majority)
-    # majority = majority.reshape(majority.shape[0],-1)
-    # majority_label = np.array(majority_label)
-    # majority_label = majority_label.reshape(majority_label.shape[0],-1)
 
 
 def prepare_data_sets(data_frame, SEQ_LEN, balanced, name, label):
@@ -96,8 +88,8 @@ def prepare_data_sets(data_frame, SEQ_LEN, balanced, name, label):
         x_train, y_train = copy.copy(seq[:train_size]), copy.copy(seq_label[:train_size])
         X_val, y_val = copy.copy(seq[train_size:train_size + test_size]), copy.copy(
             seq_label[train_size:train_size + test_size])
-    pickle.dump(x_train, open('x_train_test_' + name + '.pkl', "wb"))
-    pickle.dump(y_train, open('y_train_test_' + name + '.pkl', "wb"))
+    pickle.dump(x_train, open('x_train_' + name + '.pkl', "wb"))
+    pickle.dump(y_train, open('y_train_' + name + '.pkl', "wb"))
     pickle.dump(X_val, open('X_val_' + name + '.pkl', "wb"))
     pickle.dump(y_val, open('y_val_' + name + '.pkl', "wb"))
     # pickle.dump(X_test, open('X_test_' + name + '.pkl', "wb"))
