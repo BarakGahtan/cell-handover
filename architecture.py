@@ -90,7 +90,7 @@ class cnn_lstm_hybrid(nn.Module):
 
         x = self.dense3(x)  # Shape : (B, O) // O = output => (B, 1)
 
-        if self.label == 0:
+        if self.label == 0 or self.label == 2:
             return x
         else:
             return self.sigmoid(x)

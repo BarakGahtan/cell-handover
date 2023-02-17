@@ -126,7 +126,7 @@ class optimizer:
         self.time_diff = 0
         self.batch_size = batch_size
         self.label = label
-        self.writer = SummaryWriter('models/' + self.name + '_batch_size_' + str(self.batch_size))
+        self.writer = SummaryWriter('models'+str(self.label)+'/' + self.name + '_batch_size_' + str(self.batch_size))
 
     def write_to_file_switchover(self, flag):
         df_validation = pd.DataFrame({'avg_validation_loss': self.average_loss_validation,
@@ -178,7 +178,7 @@ class optimizer:
         optim_to_learn = optim.Adam(self.net.parameters(), lr=self.learn_rate)
         best_val_loss = float('inf')
         counter = 0
-        patience = 15
+        patience = 12
         # To view, start TensorBoard on the command line with:
         #   tensorboard --logdir=model/seq_64_20_all_imsi_batch_size_256
         # ...and open a browser tab to http://localhost:6006/
