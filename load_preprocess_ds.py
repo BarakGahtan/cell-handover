@@ -118,13 +118,17 @@ def preprocess_features(data_dict, label):  # label is 1 if switchover, 0 if lat
                 if col == 'switchover_global':
                     continue
                 data_dict[key][col] = pd.DataFrame(scaler.fit_transform(data_dict[key][[col]]))
+        elif label == 2:
+            for col in normalized_cols:
+                if col == 'loss_rate':
+                    continue
+                data_dict[key][col] = pd.DataFrame(scaler.fit_transform(data_dict[key][[col]]))
         else:
             for col in normalized_cols:
                 if col == 'latency_mean':
                     continue
                 data_dict[key][col] = pd.DataFrame(scaler.fit_transform(data_dict[key][[col]]))
         # data_dict[key] = copy.copy(data_dict[key][normalized_cols])
-        x = 5
 
     return data_dict
 

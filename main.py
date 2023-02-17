@@ -34,7 +34,7 @@ if __name__ == "__main__":
         drives_by_imsi_dict = prepare_switchover_col(returned_drives_by_imei_dict_train)
         training_data = training_sets_init(drives_by_imsi_dict, opts.max_switch_over, opts.max_data_imsi)
         # correlated_data_dict_train = normalize_correlate_features(drives_by_imei_dict_train)
-        correlated_data_dict_train = preprocess_features(training_data, label=opts.label)  # label = 1 = switchover, 0 = latency
+        correlated_data_dict_train = preprocess_features(training_data, label=opts.label)  # label = 1 = switchover, 0 = latency, 2 = loss_rate
         data_set_concat_train = pd.concat(correlated_data_dict_train, axis=0).reset_index()
         data_set_concat_train.drop(["level_0", "level_1"], axis=1, inplace=True)
         # one_hot = pd.get_dummies(data_set_concat_train['operator'], prefix='operator')  # make the operator into 1 hot encoding.

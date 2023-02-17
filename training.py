@@ -51,8 +51,9 @@ def prepare_data_sets(data_frame, SEQ_LEN, balanced, name, label):
         # plt.show()
         balanced_indexes = [j for i in [no_so_idxs, so_idxs] for j in i]
         random.shuffle(balanced_indexes)
-        if label == 0:
-            xs, ys = create_sequence(data_frame, SEQ_LEN, "latency_mean")
+        if label == 0 or label == 2:
+            label_text = label_text = "latency_mean" if label == 0 else "loss_rate"
+            xs, ys = create_sequence(data_frame, SEQ_LEN, label_text)
             xs = np.array(xs)
             ys = np.array(ys)
             data_set_size = xs.shape[0]

@@ -34,6 +34,6 @@ class Parser(object):
         parser_.add_argument('-mdimsi', '--max_data_imsi', default=0, type=int, help='Generate data set with most data per imsi')
         parser_.add_argument('-name', '--model_name', default="", type=str, help='name of the model')
         parser_.add_argument('-tt', '--to_train', default=0, type=int, help='If to send the model to train')
-        parser_.add_argument('-l', '--label', default=1, type=int, help='label = 1 = switchover, 0 = latency')
+        parser_.add_argument('-l', '--label', default=1, type=int, help='label = 1 = switchover, 0 = latency, 2 = loss')
         args = parser_.parse_args()
         return args
