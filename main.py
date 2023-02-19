@@ -43,17 +43,17 @@ if __name__ == "__main__":
             prepare_data_sets(data_set_concat_train, SEQ_LEN=opts.sequence_length, balanced=opts.bdataset, name=opts.model_name, label=opts.label)
         exit()
     else:  # load from saved data sets and train the model.
-        if opts.label == 2: #loss
+        if opts.label == 2:  # loss
             X_train_seq = training.make_Tensor(np.array(pickle.load(open('datasets-loss/x_train_' + opts.model_name + '.pkl', "rb"))))
             y_train_label = training.make_Tensor(np.array(pickle.load(open('datasets-loss/y_train_' + opts.model_name + '.pkl', "rb"))))
             x_val_seq = training.make_Tensor(np.array(pickle.load(open('datasets-loss/X_val_' + opts.model_name + '.pkl', "rb"))))
             y_val_label = training.make_Tensor(np.array(pickle.load(open('datasets-loss/y_val_' + opts.model_name + '.pkl', "rb"))))
-        elif opts.label == 1: #latency
+        elif opts.label == 0:  # latency
             X_train_seq = training.make_Tensor(np.array(pickle.load(open('datasets-latency/x_train_' + opts.model_name + '.pkl', "rb"))))
             y_train_label = training.make_Tensor(np.array(pickle.load(open('datasets-latency/y_train_' + opts.model_name + '.pkl', "rb"))))
             x_val_seq = training.make_Tensor(np.array(pickle.load(open('datasets-latency/X_val_' + opts.model_name + '.pkl', "rb"))))
             y_val_label = training.make_Tensor(np.array(pickle.load(open('datasets-latency/y_val_' + opts.model_name + '.pkl', "rb"))))
-        else: #switch over
+        else:  # switch over label == 1
             X_train_seq = training.make_Tensor(np.array(pickle.load(open('datasets-so/x_train_' + opts.model_name + '.pkl', "rb"))))
             y_train_label = training.make_Tensor(np.array(pickle.load(open('datasets-so/y_train_' + opts.model_name + '.pkl', "rb"))))
             x_val_seq = training.make_Tensor(np.array(pickle.load(open('datasets-so/X_val_' + opts.model_name + '.pkl', "rb"))))
@@ -66,12 +66,11 @@ if __name__ == "__main__":
         features_count = X_train_seq.shape[2]
         training_class = training.optimizer(opts.model_name, opts.epoch_number, train_loader, val_loader, val_loader, opts.sequence_length,
                                             features_count, opts.neuralnetwork_size, opts.learn_rate, opts.batch_size, opts.label)
-        if opts.label == 0:
+        if opts.label == 0 or opts.label == 2:
             training_class.main_training_loop_latency()
         else:
             training_class.main_training_loop_switchover()
         print("Finished training model " + opts.model_name + "_" + str(opts.batch_size))
-
     else:  # testing the model.
         x_test_seq = training.make_Tensor(np.array(pickle.load(open('x_test_seq_128' + '.pkl', "rb"))))
         y_test_label = training.make_Tensor(np.array(pickle.load(open('y_test_seq_128' + '.pkl', "rb"))))
