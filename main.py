@@ -40,7 +40,8 @@ if __name__ == "__main__":
         # one_hot = pd.get_dummies(data_set_concat_train['operator'], prefix='operator')  # make the operator into 1 hot encoding.
         # data_set_concat_train = pd.concat([data_set_concat_train, one_hot], axis=1)  # Concatenate the original DataFrame and the one-hot encoding
         X_train_seq, y_train_label, x_val_seq, y_val_label = \
-            prepare_data_sets(data_set_concat_train, SEQ_LEN=opts.sequence_length, balanced=opts.bdataset, name=opts.model_name, label=opts.label)
+            prepare_data_sets(data_set_concat_train, SEQ_LEN=opts.sequence_length, balanced=opts.bdataset, name=opts.model_name, label=opts.label,
+                              training=opts.prepare_data_set)
         exit()
     else:  # load from saved data sets and train the model.
         if opts.label == 2:  # loss
