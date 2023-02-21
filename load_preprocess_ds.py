@@ -10,8 +10,8 @@ import seaborn as sns
 
 def init_drives_dataset(pickle_name, number_of_drives_for_ds):
     big_df = pd.read_pickle(pickle_name)
-    # big_df = big_df[big_df['date'] >= '20230208']
-    big_df = big_df[big_df['date'] >= '20221201']  # According to the drives specific latest with DriveU algo.
+    big_df = big_df[big_df['date'] >= '20230208'] #testing
+    # big_df = big_df[big_df['date'] >= '20221201']  # According to the drives specific latest with DriveU algo.
     big_df.drop(columns=['imei', 'changes', 'end_state', 'operator', 'drive_id', 'rssi', 'latency_max', 'qp_mean', 'frame_lost',
                          'frame_latency_mean'], inplace=True, axis=1)
     # plt.figure(figsize=(15, 10))
@@ -163,7 +163,7 @@ def training_sets_init(given_dict, max_switchover, imsi_number):
                     else:
                         continue
         return result_dict
-    else:  ##concatenate all of the drives with in the same IMSI, and then take the biggest one.
+    else:  ## concatenate all of the drives with in the same IMSI, and then take the biggest one.
         keys = given_dict.keys()
         special_character = "_"
         keys_imsi = set([key.split(special_character)[-1] for key in keys if special_character in key])

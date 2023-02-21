@@ -317,13 +317,13 @@ class optimizer:
         self.write_to_file_latency()
 
 
-def test_model(test_loader, given_model, opts):
+def test_model_bce(test_loader, given_model, opts):
     net = given_model
     average_loss_test, true_positive_arr_06, false_pos_array_06 = [], [], []
     true_positive_arr_07, false_pos_array_07 = [], []
     writer = SummaryWriter('test/' + opts.model_name + '_batch_size_' + str(opts.batch_size))
     criterion = torch.nn.BCELoss()
-    for i in range(0, 5):
+    for i in range(0, 10):
         running_tloss, true_positive_running_06, false_positive_running_06 = 0.0, 0.0, 0.0
         true_positive_running_07, false_positive_running_07 = 0.0, 0.0
         with torch.no_grad():
@@ -349,7 +349,7 @@ def test_model(test_loader, given_model, opts):
                 axs[0].set_title("Threshold 06")
                 axs[1].set_title("Threshold 07")
                 # plt.title("Sequence 64")
-                plt.savefig("sequence-128-20.pdf", dpi=300)
+                plt.savefig("sequence-128-20.pd0f", dpi=300)
                 plt.show()
 
                 true_positive_06 = cm_06[1][1]
@@ -378,11 +378,45 @@ def test_model(test_loader, given_model, opts):
                                                           'false positive 07': avg_fpositive_07}, j + 1)
 
     writer.flush()
-    write_test_to_file(true_positive=true_positive_arr_06, false_pos=false_pos_array_06, true_positive2=true_positive_arr_07,
-                       false_pos2=false_pos_array_07, test_loss=average_loss_test, test_loader=test_loader, seq_len=opts.sequence_length)
+    write_test_to_file_bce(true_positive=true_positive_arr_06, false_pos=false_pos_array_06, true_positive2=true_positive_arr_07,
+                           false_pos2=false_pos_array_07, test_loss=average_loss_test, test_loader=test_loader, seq_len=opts.sequence_length)
 
 
-def write_test_to_file(true_positive, false_pos, true_positive2, false_pos2, test_loss, test_loader, seq_len):
+def test_model_mse(test_loader, given_model, opts):
+    net = given_model
+    average_loss_test = []
+    predictions, true_labels, ratio = [], [], []
+    writer = SummaryWriter('test/' + opts.model_name + '_batch_size_' + str(opts.batch_size))
+    criterion = torch.nn.MSELoss()
+    for i in range(0, 1):
+        running_tloss = 0.0
+        running_test_predition, running_test_labels = 0.0, 0.0
+        with torch.no_grad():
+            for j, tdata in enumerate(test_loader, 0):
+                tinputs, tlabels = tdata
+                toutputs = net(tinputs)
+                tloss = criterion(toutputs.squeeze(1), tlabels)
+                running_tloss += tloss.item()
+                running_test_predition += np.array(toutputs.squeeze(1).tolist()).mean()
+                running_test_labels += np.array(tlabels.tolist()).mean()
+            avg_tloss = running_tloss / len(test_loader)
+            running_test_predition /= len(test_loader)
+            running_test_labels /= len(test_loader)
+            average_loss_test.append(avg_tloss)
+            predictions.append(running_test_predition)
+            true_labels.append(running_test_labels)
+            ratio.append(running_test_predition / running_test_labels)
+            # Log the running loss averaged per batch
+            writer.add_scalars('Test set', {'Test loss': avg_tloss}, j + 1)
+            writer.add_scalars('True accuracy Test set', {'predictions': running_test_predition,
+                                                          'true labels': running_test_labels,
+                                                          'ratio': running_test_predition}, j + 1)
+    writer.flush()
+    write_test_to_file_mse(test_loss=average_loss_test, pred_arr=predictions, label_arr=true_labels, ratio_arr=ratio, seq_len=opts.sequence_length,
+                           test_loader=test_loader)
+
+
+def write_test_to_file_bce(true_positive, false_pos, true_positive2, false_pos2, test_loss, test_loader, seq_len):
     df_validation = pd.DataFrame({'avg_test_loss': test_loss,
                                   'tp06': true_positive,
                                   'fp06': false_pos,
@@ -392,3 +426,13 @@ def write_test_to_file(true_positive, false_pos, true_positive2, false_pos2, tes
                                   'testl_sample_count': len(test_loader.dataset)})
     df_validation.to_csv(
         'test/' + str(seq_len) + str(time.time()) + '.csv', index=False)
+
+
+def write_test_to_file_mse(test_loss, pred_arr, label_arr, ratio_arr, seq_len, test_loader):
+    df_validation = pd.DataFrame({'avg_test_loss': test_loss,
+                                  'pred': pred_arr,
+                                  'true-label': label_arr,
+                                  'ratio': ratio_arr,
+                                  'testl_samples_batches_count': len(test_loader),
+                                  'testl_sample_count': len(test_loader.dataset)})
+    df_validation.to_csv('test/' + str(seq_len) + str(time.time()) + '.csv', index=False)
