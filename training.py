@@ -52,7 +52,7 @@ def prepare_data_sets(data_frame, SEQ_LEN, balanced, name, label):
         balanced_indexes = [j for i in [no_so_idxs, so_idxs] for j in i]
         random.shuffle(balanced_indexes)
         if label == 0 or label == 2:
-            label_text = label_text = "latency_mean" if label == 0 else "loss_rate"
+            label_text = "latency_mean" if label == 0 else "loss_rate"
             xs, ys = create_sequence(data_frame, SEQ_LEN, label_text)
             xs = np.array(xs)
             ys = np.array(ys)
@@ -91,8 +91,9 @@ def prepare_data_sets(data_frame, SEQ_LEN, balanced, name, label):
             seq_label[train_size:train_size + test_size])
     pickle.dump(x_train, open('x_train_' + name + '.pkl', "wb"))
     pickle.dump(y_train, open('y_train_' + name + '.pkl', "wb"))
-    pickle.dump(X_val, open('X_val_' + name + '.pkl', "wb"))
-    pickle.dump(y_val, open('y_val_' + name + '.pkl', "wb"))
+    # pickle.dump(X_val, open('X_val_' + name + '.pkl', "wb"))
+    # pickle.dump(y_val, open('y_val_' + name + '.pkl', "wb"))
+    exit()
     # pickle.dump(X_test, open('X_test_' + name + '.pkl', "wb"))
     # pickle.dump(y_test, open('y_test_' + name + '.pkl', "wb"))
     return make_Tensor(x_train), make_Tensor(y_train), make_Tensor(X_val), make_Tensor(y_val)
@@ -427,6 +428,15 @@ def write_test_to_file_bce(true_positive, false_pos, true_positive2, false_pos2,
     df_validation.to_csv(
         'test/' + str(seq_len) + str(time.time()) + '.csv', index=False)
 
+
+def write_test_to_file_mse(test_loss, pred_arr, label_arr, ratio_arr, seq_len, test_loader):
+    df_validation = pd.DataFrame({'avg_test_loss': test_loss,
+                                  'pred': pred_arr,
+                                  'true-label': label_arr,
+                                  'ratio': ratio_arr,
+                                  'testl_samples_batches_count': len(test_loader),
+                                  'testl_sample_count': len(test_loader.dataset)})
+    df_validation.to_csv('test/' + str(seq_len) + str(time.time()) + '.csv', index=False)
 
 def write_test_to_file_mse(test_loss, pred_arr, label_arr, ratio_arr, seq_len, test_loader):
     df_validation = pd.DataFrame({'avg_test_loss': test_loss,

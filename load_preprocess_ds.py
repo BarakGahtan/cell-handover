@@ -128,8 +128,6 @@ def preprocess_features(data_dict, label):  # label is 1 if switchover, 0 if lat
                 if col == 'latency_mean':
                     continue
                 data_dict[key][col] = pd.DataFrame(scaler.fit_transform(data_dict[key][[col]]))
-        # data_dict[key] = copy.copy(data_dict[key][normalized_cols])
-
     return data_dict
 
 

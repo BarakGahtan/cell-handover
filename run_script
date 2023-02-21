@@ -1,8 +1,7 @@
 #!/bin/bash
 #CREATE DATASETS
 
-#python3 main.py -nd 80 -ndtrain 400 -seq 64 -nnsize 32 -nnlayers 2 -balanced 1 -bs 256 -tt 0 -name seq_64_80_label_0 -mso 0 -lff 0 -mdimsi 0 -l 0
-#python3 main.py -nd 80 -ndtrain 400 -seq 128 -nnsize 32 -nnlayers 2 -balanced 1 -bs 256 -tt 0 -name seq_128_80_label_0 -mso 0 -lff 0 -mdimsi 0 -l 0
+#python3 main.py -nd 80 -seq 64 -balanced 1 -bs 256 -tt 0 -name seq_64_80_label_0_test -mso 0 -lff 0 -mdimsi 0 -l 0
 
 
 
@@ -26,8 +25,8 @@ python3 main.py -nd 80 -ndtrain 400 -seq 128 -balanced 1 -bs 256 -tt 0 -name seq
 
 
 ##20, 50, 80 drives, sequence 32 #under sampling
-#python3 main.py -nd 20  -seq 32  -bs 128 -tt 1 -name seq_32_20_label_0 -lff 1 -mdimsi 0 -l 0 -lr 1e-3
-#python3 main.py -nd 80  -seq 32  -bs 512 -tt 1 -name seq_32_80_label_0 -lff 1 -mdimsi 0 -l 0 -lr 1e-4
+#python3 main.py -nd 20  -seq 32  -bs 128 -tt 1 -name seq_32_20_label_0 -lff 1 -mdimsi 0 -l 0 -lr 1e-4
+python3 main.py -nd 80  -seq 32  -bs 512 -tt 1 -name seq_32_80_label_0 -lff 1 -mdimsi 0 -l 0 -lr 1e-4
 #
 ###20, 50, 80 drives, sequence 64 #under sampling
 #python3 main.py -nd 20 -seq 64  -bs 128 -tt 1 -name seq_64_20_label_0 -lff 1 -mdimsi 0 -l 0 -lr 1e-3
