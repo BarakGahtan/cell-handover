@@ -84,11 +84,15 @@ def prepare_data_sets(data_frame, SEQ_LEN, balanced, name, label, training):
         seq, seq_label = create_sequence(data_frame, SEQ_LEN)
         seq, seq_label = balance_data_set(seq, seq_label)  # over sampled
         data_set_size = seq.shape[0]
-        train_size = int(data_set_size * 0.8)
-        test_size = int(int(data_set_size - train_size))
-        x_train, y_train = copy.copy(seq[:train_size]), copy.copy(seq_label[:train_size])
-        X_val, y_val = copy.copy(seq[train_size:train_size + test_size]), copy.copy(
-            seq_label[train_size:train_size + test_size])
+        if training == 1:
+            train_size = int(data_set_size * 0.8)
+            test_size = int(int(data_set_size - train_size))
+            x_train, y_train = copy.copy(seq[:train_size]), copy.copy(seq_label[:train_size])
+            X_val, y_val = copy.copy(seq[train_size:train_size + test_size]), copy.copy(
+                seq_label[train_size:train_size + test_size])
+        else:
+            train_size = int(data_set_size)
+            x_train, y_train = copy.copy(seq[:train_size]), copy.copy(seq_label[:train_size])
     if training == 1:
         pickle.dump(x_train, open('x_train_' + name + '.pkl', "wb"))
         pickle.dump(y_train, open('y_train_' + name + '.pkl', "wb"))
