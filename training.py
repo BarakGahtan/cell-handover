@@ -99,8 +99,8 @@ def prepare_data_sets(data_frame, SEQ_LEN, balanced, name, label, training):
         pickle.dump(X_val, open('X_val_' + name + '.pkl', "wb"))
         pickle.dump(y_val, open('y_val_' + name + '.pkl', "wb"))
     else:
-        pickle.dump(x_train, open('x_test_' + name + '.pkl', "wb"))
-        pickle.dump(y_train, open('y_test_' + name + '.pkl', "wb"))
+        pickle.dump(x_train, open('x_' + name + '.pkl', "wb"))
+        pickle.dump(y_train, open('y_' + name + '.pkl', "wb"))
     exit()
     # pickle.dump(X_test, open('X_test_' + name + '.pkl', "wb"))
     # pickle.dump(y_test, open('y_test_' + name + '.pkl', "wb"))
@@ -168,18 +168,17 @@ class optimizer:
                 'models_label_'+str(self.label)+'/' + self.name + '_batch_size_' + str(self.batch_size) + "/" + self.name + '_batch_size_' + str(self.batch_size) + '_' + str(
                     time.time()) + '.csv', index=False)
 
-    def write_to_file_latency(self):
+    def write_to_file_loss(self):
         df_validation = pd.DataFrame({'avg_validation_loss': self.average_loss_validation,
                                       'avg_training_loss': self.average_loss_training,
                                       'predictions': self.predicted_latency_values,
-                                      'real_latency': self.real_latency_values,
+                                      'real_loss': self.real_latency_values,
                                       'tl_samples_batches_count': len(self.train_loader),
                                       'tl_sample_count': len(self.train_loader.dataset),
                                       'vl_samples_batches_count': len(self.validation_loader),
                                       'vl_sample_count': len(self.validation_loader.dataset)})
         df_validation.to_csv(
-            'models_label_'+str(self.label)+'/' + self.name + '_batch_size_' + str(self.batch_size) + "/" + self.name + '_batch_size_' + str(self.batch_size) + '_' + str(
-                time.time()) + '.csv', index=False)
+            'models_label_'+str(self.label)+'/' + self.name + '_batch_size_' + str(self.batch_size) + "/" + self.name + '_' + str(time.time()) + '.csv', index=False)
 
     def main_training_loop_switchover(self):
         avg_vloss = float('inf')
@@ -310,6 +309,7 @@ class optimizer:
                 torch.save(self.net.state_dict(),
                            'models_label_'+ str(self.label) +'/' + self.name + '_batch_size_' + str(self.batch_size) + "/" + 'best_model_' + self.name + '_batch_size_' + str(
                                self.batch_size) + '.pt')
+                self.write_to_file_loss()
                 counter = 0
             else:
                 counter = counter + 1
@@ -323,7 +323,7 @@ class optimizer:
                 break
         print('Finished Training')
         self.writer.flush()
-        self.write_to_file_latency()
+        self.write_to_file_loss()
 
 
 def test_model_bce(test_loader, given_model, opts):
