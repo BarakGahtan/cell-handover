@@ -25,8 +25,6 @@ warnings.filterwarnings("ignore")
 if __name__ == "__main__":
     parsed_args = input_parser.Parser()
     opts = parsed_args.parse()
-    BALANCED_FLAG = opts.bdataset
-    to_balance = True
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     if opts.load_from_files == 0:
         returned_drives_by_imei_dict_train = init_drives_dataset('pickle_rick_full.pkl', opts.number_drives)
@@ -80,9 +78,9 @@ if __name__ == "__main__":
         # y_test_label = training.make_Tensor(np.array(pickle.load(open('datasets-latency/y_train_seq_128_80_label_0' + '.pkl', "rb"))))
         x_test_seq = training.make_Tensor(np.array(pickle.load(open('x_test_' + opts.model_name + '.pkl', "rb"))))
         y_test_label = training.make_Tensor(np.array(pickle.load(open('y_test_' + opts.model_name + '.pkl', "rb"))))
-        test_loader = DataLoader(TensorDataset(x_test_seq, y_test_label), batch_size=469, shuffle=False, drop_last=True)
+        test_loader = DataLoader(TensorDataset(x_test_seq, y_test_label), batch_size=512, shuffle=False, drop_last=True)
         model = architecture.cnn_lstm_hybrid(features=x_test_seq.shape[2], label=opts.label)
-        model.load_state_dict(torch.load('best_model_seq_128_80_all_imsi_batch_size_512.pt'))
+        model.load_state_dict(torch.load('best_model_seq_32_80_label_2_batch_size_512.pt'))
         if opts.label == 0 or opts.label == 2:
             training.test_model_mse(test_loader=test_loader, given_model=model, opts=opts)
         else:
