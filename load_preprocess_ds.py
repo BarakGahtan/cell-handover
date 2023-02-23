@@ -122,8 +122,6 @@ def preprocess_features(data_dict, label):  # label is 1 if switchover, 0 if lat
                 data_dict[key][col] = pd.DataFrame(scaler.fit_transform(data_dict[key][[col]]))
         elif label == 2:
             for col in normalized_cols:
-                if col == 'loss_rate':
-                    continue
                 data_dict[key][col] = pd.DataFrame(scaler.fit_transform(data_dict[key][[col]]))
         else:
             for col in normalized_cols:
