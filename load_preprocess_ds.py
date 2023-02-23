@@ -8,12 +8,14 @@ import cell_calculation
 import seaborn as sns
 
 
-def init_drives_dataset(pickle_name, number_of_drives_for_ds):
+def init_drives_dataset(pickle_name, number_of_drives_for_ds,testing):
     big_df = pd.read_pickle(pickle_name)
-    big_df = big_df[big_df['date'] >= '20230208']  # testing
-    # big_df = big_df[big_df['date'] >= '20221201']  # According to the drives specific latest with DriveU algo.
+    if testing == 0:
+        big_df = big_df[big_df['date'] >= '20230208'] #testing
+    else:
+        big_df = big_df[big_df['date'] >= '20221201']  # training According to the drives specific latest with DriveU algo.
     big_df.drop(columns=['imei', 'changes', 'end_state', 'operator', 'drive_id', 'rssi', 'latency_max', 'qp_mean', 'frame_lost',
-                         'frame_latency_mean'], inplace=True, axis=1)
+                         'frame_latency_mean'], inplace=True, axis=1) #with latency_mean
     # plt.figure(figsize=(15, 10))
     cor = big_df.corr().abs()
     # sns.heatmap(cor, annot=True, cmap=plt.cm.Blues, fmt=".2f")

@@ -76,7 +76,7 @@ def prepare_data_sets(data_frame, SEQ_LEN, balanced, name, label, training):
             ys = np.array(ys)
             data_set_size = xs.shape[0]
             train_size = int(data_set_size * 0.8)
-            test_size = int(int(data_set_size - train_size) / 2)
+            test_size = int(int(data_set_size - train_size))
             x_train, y_train = copy.copy(xs[:train_size]), copy.copy(ys[:train_size])
             X_val, y_val = copy.copy(xs[train_size:train_size + test_size]), copy.copy(ys[train_size:train_size + test_size])
             # X_test, y_test = copy.copy(xs[train_size + test_size:]), copy.copy(ys[train_size + test_size:])
