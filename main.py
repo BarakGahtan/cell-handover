@@ -25,11 +25,9 @@ warnings.filterwarnings("ignore")
 if __name__ == "__main__":
     parsed_args = input_parser.Parser()
     opts = parsed_args.parse()
-    BALANCED_FLAG = opts.bdataset
-    to_balance = True
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     if opts.load_from_files == 0:
-        returned_drives_by_imei_dict_train = init_drives_dataset('pickle_rick_full.pkl', opts.number_drives)
+        returned_drives_by_imei_dict_train = init_drives_dataset('pickle_rick_full.pkl', opts.number_drives, opts.prepare_data_set)
         # cells_per_drives_in_dataset_train, cells_dict_train = get_cells_per_drive_in_dataset(returned_drives_by_imei_dict_train)
         drives_by_imsi_dict = prepare_switchover_col(returned_drives_by_imei_dict_train)
         training_data = training_sets_init(drives_by_imsi_dict, opts.max_switch_over, opts.max_data_imsi)
