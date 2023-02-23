@@ -442,11 +442,3 @@ def write_test_to_file_mse(test_loss, pred_arr, label_arr, ratio_arr, seq_len, t
                                   'testl_sample_count': len(test_loader.dataset)})
     df_validation.to_csv('test/' + str(seq_len) + str(time.time()) + '.csv', index=False)
 
-def write_test_to_file_mse(test_loss, pred_arr, label_arr, ratio_arr, seq_len, test_loader):
-    df_validation = pd.DataFrame({'avg_test_loss': test_loss,
-                                  'pred': pred_arr,
-                                  'true-label': label_arr,
-                                  'ratio': ratio_arr,
-                                  'testl_samples_batches_count': len(test_loader),
-                                  'testl_sample_count': len(test_loader.dataset)})
-    df_validation.to_csv('test/' + str(seq_len) + str(time.time()) + '.csv', index=False)

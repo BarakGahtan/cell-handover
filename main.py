@@ -45,20 +45,23 @@ if __name__ == "__main__":
         exit()
     else:  # load from saved data sets and train the model.
         if opts.label == 2:  # loss
-            X_train_seq = training.make_Tensor(np.array(pickle.load(open('datasets-loss/x_train_' + opts.model_name + '.pkl', "rb"))))
-            y_train_label = training.make_Tensor(np.array(pickle.load(open('datasets-loss/y_train_' + opts.model_name + '.pkl', "rb"))))
-            x_val_seq = training.make_Tensor(np.array(pickle.load(open('datasets-loss/X_val_' + opts.model_name + '.pkl', "rb"))))
-            y_val_label = training.make_Tensor(np.array(pickle.load(open('datasets-loss/y_val_' + opts.model_name + '.pkl', "rb"))))
+            if opts.prepare_data_set == 1:
+                X_train_seq = training.make_Tensor(np.array(pickle.load(open('datasets-loss/x_train_' + opts.model_name + '.pkl', "rb"))))
+                y_train_label = training.make_Tensor(np.array(pickle.load(open('datasets-loss/y_train_' + opts.model_name + '.pkl', "rb"))))
+                x_val_seq = training.make_Tensor(np.array(pickle.load(open('datasets-loss/X_val_' + opts.model_name + '.pkl', "rb"))))
+                y_val_label = training.make_Tensor(np.array(pickle.load(open('datasets-loss/y_val_' + opts.model_name + '.pkl', "rb"))))
         elif opts.label == 0:  # latency
-            X_train_seq = training.make_Tensor(np.array(pickle.load(open('datasets-latency/x_train_' + opts.model_name + '.pkl', "rb"))))
-            y_train_label = training.make_Tensor(np.array(pickle.load(open('datasets-latency/y_train_' + opts.model_name + '.pkl', "rb"))))
-            x_val_seq = training.make_Tensor(np.array(pickle.load(open('datasets-latency/X_val_' + opts.model_name + '.pkl', "rb"))))
-            y_val_label = training.make_Tensor(np.array(pickle.load(open('datasets-latency/y_val_' + opts.model_name + '.pkl', "rb"))))
+            if opts.prepare_data_set == 1:
+                X_train_seq = training.make_Tensor(np.array(pickle.load(open('datasets-latency/x_train_' + opts.model_name + '.pkl', "rb"))))
+                y_train_label = training.make_Tensor(np.array(pickle.load(open('datasets-latency/y_train_' + opts.model_name + '.pkl', "rb"))))
+                x_val_seq = training.make_Tensor(np.array(pickle.load(open('datasets-latency/X_val_' + opts.model_name + '.pkl', "rb"))))
+                y_val_label = training.make_Tensor(np.array(pickle.load(open('datasets-latency/y_val_' + opts.model_name + '.pkl', "rb"))))
         else:  # switch over label == 1
-            X_train_seq = training.make_Tensor(np.array(pickle.load(open('datasets-so/x_train_' + opts.model_name + '.pkl', "rb"))))
-            y_train_label = training.make_Tensor(np.array(pickle.load(open('datasets-so/y_train_' + opts.model_name + '.pkl', "rb"))))
-            x_val_seq = training.make_Tensor(np.array(pickle.load(open('datasets-so/X_val_' + opts.model_name + '.pkl', "rb"))))
-            y_val_label = training.make_Tensor(np.array(pickle.load(open('datasets-so/y_val_' + opts.model_name + '.pkl', "rb"))))
+            if opts.prepare_data_set == 1:
+                X_train_seq = training.make_Tensor(np.array(pickle.load(open('datasets-so/x_train_' + opts.model_name + '.pkl', "rb"))))
+                y_train_label = training.make_Tensor(np.array(pickle.load(open('datasets-so/y_train_' + opts.model_name + '.pkl', "rb"))))
+                x_val_seq = training.make_Tensor(np.array(pickle.load(open('datasets-so/X_val_' + opts.model_name + '.pkl', "rb"))))
+                y_val_label = training.make_Tensor(np.array(pickle.load(open('datasets-so/y_val_' + opts.model_name + '.pkl', "rb"))))
     if opts.to_train == 1:
         train_data_set = TensorDataset(X_train_seq, y_train_label)
         train_loader = DataLoader(train_data_set, batch_size=opts.batch_size, shuffle=False, drop_last=True)
@@ -75,11 +78,11 @@ if __name__ == "__main__":
     else:  # testing the model.
         # x_test_seq = training.make_Tensor(np.array(pickle.load(open('datasets-latency/x_train_seq_128_80_label_0' + '.pkl', "rb"))))
         # y_test_label = training.make_Tensor(np.array(pickle.load(open('datasets-latency/y_train_seq_128_80_label_0' + '.pkl', "rb"))))
-        x_test_seq = training.make_Tensor(np.array(pickle.load(open('x_train_' + opts.model_name + '.pkl', "rb"))))
-        y_test_label = training.make_Tensor(np.array(pickle.load(open('y_train_' + opts.model_name + '.pkl', "rb"))))
+        x_test_seq = training.make_Tensor(np.array(pickle.load(open('x_test_' + opts.model_name + '.pkl', "rb"))))
+        y_test_label = training.make_Tensor(np.array(pickle.load(open('y_test_' + opts.model_name + '.pkl', "rb"))))
         test_loader = DataLoader(TensorDataset(x_test_seq, y_test_label), batch_size=512, shuffle=False, drop_last=True)
         model = architecture.cnn_lstm_hybrid(features=x_test_seq.shape[2], label=0)
-        model.load_state_dict(torch.load('best_model_seq_64_80_label_2_batch_size_512.pt'))
+        model.load_state_dict(torch.load('best_model_seq_32_80_label_0_batch_size_512.pt'))
         training.test_model_mse(test_loader=test_loader, given_model=model, opts=opts)
         print("Finished testing model " + opts.model_name + "_" + str(opts.batch_size))
         print("finished making a data set.")
