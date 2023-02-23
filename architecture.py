@@ -93,4 +93,5 @@ class cnn_lstm_hybrid(nn.Module):
         if self.label == 0 or self.label == 2:
             return x
         else:
-            return self.sigmoid(x)
+            x = self.sigmoid(x)
+            return x

@@ -80,9 +80,12 @@ if __name__ == "__main__":
         # y_test_label = training.make_Tensor(np.array(pickle.load(open('datasets-latency/y_train_seq_128_80_label_0' + '.pkl', "rb"))))
         x_test_seq = training.make_Tensor(np.array(pickle.load(open('x_test_' + opts.model_name + '.pkl', "rb"))))
         y_test_label = training.make_Tensor(np.array(pickle.load(open('y_test_' + opts.model_name + '.pkl', "rb"))))
-        test_loader = DataLoader(TensorDataset(x_test_seq, y_test_label), batch_size=512, shuffle=False, drop_last=True)
-        model = architecture.cnn_lstm_hybrid(features=x_test_seq.shape[2], label=0)
-        model.load_state_dict(torch.load('best_model_seq_32_80_label_0_batch_size_512.pt'))
-        training.test_model_mse(test_loader=test_loader, given_model=model, opts=opts)
+        test_loader = DataLoader(TensorDataset(x_test_seq, y_test_label), batch_size=469, shuffle=False, drop_last=True)
+        model = architecture.cnn_lstm_hybrid(features=x_test_seq.shape[2], label=opts.label)
+        model.load_state_dict(torch.load('best_model_seq_128_80_all_imsi_batch_size_512.pt'))
+        if opts.label == 0 or opts.label == 2:
+            training.test_model_mse(test_loader=test_loader, given_model=model, opts=opts)
+        else:
+            training.test_model_bce(test_loader=test_loader, given_model=model, opts=opts)
         print("Finished testing model " + opts.model_name + "_" + str(opts.batch_size))
         print("finished making a data set.")

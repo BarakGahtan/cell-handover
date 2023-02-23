@@ -34,6 +34,7 @@ class Parser(object):
         parser_.add_argument('-mdimsi', '--max_data_imsi', default=0, type=int, help='Generate data set with most data per imsi')
         parser_.add_argument('-name', '--model_name', default="", type=str, help='name of the model')
         parser_.add_argument('-tt', '--to_train', default=0, type=int, help='If to send the model to train')
+        parser_.add_argument('-test', '--to_test', default=0, type=int, help='If to send the model to test')
         parser_.add_argument('-pds', '--prepare_data_set', default=1, type=int, help='If to prepare for training == 1, prepare for test = 0')
         parser_.add_argument('-l', '--label', default=1, type=int, help='label: latency = 0, switchover = 1, loss = 2')
         args = parser_.parse_args()
