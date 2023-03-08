@@ -135,7 +135,7 @@ class optimizer:
         self.time_diff = 0
         self.batch_size = batch_size
         self.label = label
-        self.writer = SummaryWriter('models_label_'+str(self.label)+'/' + self.name + '_batch_size_' + str(self.batch_size))
+        self.writer = SummaryWriter('models_label_' + str(self.label) + '/' + self.name + '_batch_size_' + str(self.batch_size))
 
     def write_to_file_switchover(self, flag):
         df_validation = pd.DataFrame({'avg_validation_loss': self.average_loss_validation,
@@ -161,11 +161,13 @@ class optimizer:
             )
             unified_df = pd.concat([df_validation, df_test], axis=0)
             unified_df.to_csv(
-                'models_label_'+str(self.label)+'/' + self.name + '_batch_size_' + str(self.batch_size) + "/" + self.name + '_batch_size_' + str(self.batch_size) + '_' + str(
+                'models_label_' + str(self.label) + '/' + self.name + '_batch_size_' + str(self.batch_size) + "/" + self.name + '_batch_size_' + str(
+                    self.batch_size) + '_' + str(
                     time.time()) + '.csv', index=False)
         else:
             df_validation.to_csv(
-                'models_label_'+str(self.label)+'/' + self.name + '_batch_size_' + str(self.batch_size) + "/" + self.name + '_batch_size_' + str(self.batch_size) + '_' + str(
+                'models_label_' + str(self.label) + '/' + self.name + '_batch_size_' + str(self.batch_size) + "/" + self.name + '_batch_size_' + str(
+                    self.batch_size) + '_' + str(
                     time.time()) + '.csv', index=False)
 
     def write_to_file_loss(self):
@@ -178,7 +180,8 @@ class optimizer:
                                       'vl_samples_batches_count': len(self.validation_loader),
                                       'vl_sample_count': len(self.validation_loader.dataset)})
         df_validation.to_csv(
-            'models_label_'+str(self.label)+'/' + self.name + '_batch_size_' + str(self.batch_size) + "/" + self.name + '_' + str(time.time()) + '.csv', index=False)
+            'models_label_' + str(self.label) + '/' + self.name + '_batch_size_' + str(self.batch_size) + "/" + self.name + '_' + str(
+                time.time()) + '.csv', index=False)
 
     def main_training_loop_switchover(self):
         avg_vloss = float('inf')
@@ -307,7 +310,8 @@ class optimizer:
             if val_loss < best_val_loss:  # Save the best model based on validation loss
                 best_val_loss = val_loss
                 torch.save(self.net.state_dict(),
-                           'models_label_'+ str(self.label) +'/' + self.name + '_batch_size_' + str(self.batch_size) + "/" + 'best_model_' + self.name + '_batch_size_' + str(
+                           'models_label_' + str(self.label) + '/' + self.name + '_batch_size_' + str(
+                               self.batch_size) + "/" + 'best_model_' + self.name + '_batch_size_' + str(
                                self.batch_size) + '.pt')
                 self.write_to_file_loss()
                 counter = 0
@@ -445,4 +449,3 @@ def write_test_to_file_mse(test_loss, pred_arr, label_arr, ratio_arr, seq_len, t
                                   'testl_samples_batches_count': len(test_loader),
                                   'testl_sample_count': len(test_loader.dataset)})
     df_validation.to_csv('test/' + str(seq_len) + str(time.time()) + '.csv', index=False)
-
