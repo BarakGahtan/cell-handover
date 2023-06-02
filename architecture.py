@@ -14,7 +14,7 @@ class cnn_lstm_hybrid(nn.Module):
         self.label = label
         self.conv1d_1 = nn.Sequential(
             nn.Conv1d(in_channels=features,
-                      out_channels=128,
+                      out_channels=64,
                       kernel_size=3,
                       stride=1,
                       padding=1),
@@ -22,8 +22,8 @@ class cnn_lstm_hybrid(nn.Module):
         )
 
         self.conv1d_2 = nn.Sequential(
-            nn.Conv1d(in_channels=128,
-                      out_channels=128,
+            nn.Conv1d(in_channels=64,
+                      out_channels=64,
                       kernel_size=3,
                       stride=1,
                       padding=1),
@@ -31,8 +31,8 @@ class cnn_lstm_hybrid(nn.Module):
             # nn.MaxPool1d(3),
         )
         self.conv1d_3 = nn.Sequential(
-            nn.Conv1d(in_channels=128,
-                      out_channels=128,
+            nn.Conv1d(in_channels=64,
+                      out_channels=64,
                       kernel_size=3,
                       stride=1,
                       padding=1),
@@ -41,8 +41,8 @@ class cnn_lstm_hybrid(nn.Module):
         )
 
         self.conv1d_4 = nn.Sequential(
-            nn.Conv1d(in_channels=128,
-                      out_channels=256,
+            nn.Conv1d(in_channels=64,
+                      out_channels=128,
                       kernel_size=3,
                       stride=1,
                       padding=1),
@@ -50,16 +50,20 @@ class cnn_lstm_hybrid(nn.Module):
             # nn.MaxPool1d(3),
         )
 
-        self.lstm = nn.LSTM(input_size=256,
-                            hidden_size=256,
+        self.lstm = nn.LSTM(input_size=128,
+                            hidden_size=128,
                             num_layers=2,
                             batch_first=True)
 
         # self.dropout = nn.Dropout(0.3)
-        self.dense1 = nn.Linear(256, 128)
-        self.dense2 = nn.Linear(128, 32)
+        self.dense1 = nn.Linear(128, 64)
+        self.dense2 = nn.Linear(64, 32)
         self.dense3 = nn.Linear(32, 1)
         self.sigmoid = nn.Sigmoid()
+
+        self.dense3_reg = nn.Linear(32, 1)  # regression output layer
+        self.dense3_class = nn.Linear(32, 1)  # binary classification output layer
+
 
     def forward(self, x):
         # Raw x shape : (B, S, F) => (B, 64, 11)
@@ -91,7 +95,15 @@ class cnn_lstm_hybrid(nn.Module):
         x = self.dense3(x)  # Shape : (B, O) // O = output => (B, 1)
 
         if self.label == 0 or self.label == 2:
-            return x
+            return self.sigmoid(x)
+
+        elif self.label == 3:
+            # regression output
+            x_reg = self.dense3_reg(x)
+            # binary classification output
+            x_handover = self.dense3_class(x)
+            x_handover = self.sigmoid(x_handover)
+            return x_reg, x_handover
         else:
             x = self.sigmoid(x)
             return x

@@ -1,12 +1,9 @@
 import copy
 import numpy as np
 import pandas as pd
-from matplotlib import pyplot as plt
 from sklearn.impute import KNNImputer
 from sklearn.preprocessing import MinMaxScaler
 import cell_calculation
-import seaborn as sns
-
 
 def init_drives_dataset(pickle_name, number_of_drives_for_ds,testing):
     big_df = pd.read_pickle(pickle_name)
@@ -14,16 +11,19 @@ def init_drives_dataset(pickle_name, number_of_drives_for_ds,testing):
         big_df = big_df[big_df['date'] >= '20230208'] #testing
     else:
         big_df = big_df[big_df['date'] >= '20221201']  # training According to the drives specific latest with DriveU algo.
-    big_df.drop(columns=['imei', 'changes', 'end_state', 'operator', 'drive_id', 'rssi', 'latency_max', 'qp_mean', 'frame_lost',
-                         'frame_latency_mean'], inplace=True, axis=1) #with latency_mean
-    # plt.figure(figsize=(15, 10))
-    cor = big_df.corr().abs()
-    # sns.heatmap(cor, annot=True, cmap=plt.cm.Blues, fmt=".2f")
+    # big_df.drop(columns=['imei', 'changes', 'end_state', 'operator', 'drive_id', 'rssi', 'latency_max', 'qp_mean', 'frame_lost',
+    #                      'frame_latency_mean', 'latency_mean'], inplace=True, axis=1) #with latency_mean
+    # big_df.drop(columns=['imei', 'imsi', 'changes', 'end_state', 'operator', 'drive_id','globalcellid'], axis=1)  # with latency_mean
+    # # plt.figure(figsize=(15, 10))
+    # cor = big_df.corr().abs()
+    # sns.heatmap(cor, annot=True, cmap=plt.cm.Red, fmt=".2f")
+    # plt.xticks(rotation=0)  # Set X-axis labels rotation to 0 degrees (horizontal)
+    # plt.yticks(rotation=0)  # Set Y-axis labels rotation to 0 degrees (horizontal)
     # plt.tight_layout()
-    # plt.savefig("corrmatrixfull-newrides.pdf", dpi=300)
+    # plt.savefig("corrmatrixfull-newrides.pdf", dpi=300,bbox_inches='tight', pad_inches=0.05)
     # plt.show()
-    upper_tri = cor.where(np.triu(np.ones(cor.shape), k=1).astype(np.bool))
-    to_drop = [column for column in upper_tri.columns if any(upper_tri[column] > 0.90)]
+    # upper_tri = cor.where(np.triu(np.ones(cor.shape), k=1).astype(np.bool))
+    # to_drop = [column for column in upper_tri.columns if any(upper_tri[column] > 0.90)]
     # big_df = big_df[big_df['date'] > '20221201']
     for i in big_df.columns:
         # count number of rows with missing values
@@ -47,7 +47,6 @@ def init_drives_dataset(pickle_name, number_of_drives_for_ds,testing):
             key_for_dict = str(
                 sorted_drives[i][j]['date'].iloc[0] + '_' + sorted_drives[i][j]['time'].iloc[0] + '_' +
                 str(sorted_drives[i][j]['imsi'].iloc[0]))
-            x = 5
             drives_by_imsi_dictionary[key_for_dict] = copy.copy(sorted_drives[i][j])
             # drives_by_imsi_dictionary[key_for_dict] = copy.copy(sorted_drives[i][j].drop(columns=to_drop, axis=1))
         counter = counter + 1
@@ -60,12 +59,17 @@ def get_cells_per_drive_in_dataset(drives_by_imei_dictionary):
     cells_per_drive_per_modem_avg = {}
     for key in drives_by_imei_dictionary.keys():  # len(drives_by_modem)
         cells, updated_df = cell_calculation.get_unique_cells_in_drive(drives_by_imei_dictionary[key])
-        # cells_per_drive_per_modem_avg[key] = pd.concat(cells, axis=0, join='outer').dropna(axis=0) @ TODO remove comments for cells visual
+        df1 = pd.DataFrame(list(cells.items()), columns=['Key', 'Values']).apply(lambda row: pd.Series([row[0], *row[1]], index=['cell', 'lat', 'lon']), axis=1)
+        # Check if there is a previous dataframe and concatenate, otherwise just assign df1
+        if key in cells_per_drive_per_modem_avg:
+            cells_per_drive_per_modem_avg[key] = pd.concat([cells_per_drive_per_modem_avg[key], df1], axis=0).dropna(axis=0)
+        else:
+            cells_per_drive_per_modem_avg[key] = df1
         drives_by_imei_dictionary[key] = updated_df
     cells_dictionary = {}
-    # for key in cells_per_drive_per_modem_avg.keys():
-    #     for index, row in cells_per_drive_per_modem_avg[key].iterrows():
-    #         cells_dictionary[row['cell']] = (row['lon'], row['lat']) TODO remove comments for cells visual
+    for key in cells_per_drive_per_modem_avg.keys():
+        for index, row in cells_per_drive_per_modem_avg[key].iterrows():
+            cells_dictionary[row['cell']] = (row['lat'], row['lon']) #TODO remove comments for cells visual
     return cells_per_drive_per_modem_avg, cells_dictionary
 
 
@@ -108,11 +112,7 @@ def preprocess_features(data_dict, label):  # label is 1 if switchover, 0 if lat
             perc = round(n_miss / data_dict[key].shape[0] * 100, 4)
             if perc != 0:
                 fill_missing_data_per_col(data_dict[key], col)  # fill the missing data per coloumn using KNNimputer with nearest neighbors.
-            n_miss = data_dict[key][col].isnull().sum()
-            perc = round(n_miss / data_dict[key].shape[0] * 100, 4)
-            x = 5
-
-        data_dict[key].drop(["date", "time", "imsi", "globalcellid"], axis=1, inplace=True)
+        data_dict[key].drop(["date", "time", "imsi", "globalcellid","operator"], axis=1, inplace=True)
         normalized_cols = data_dict[key].columns.tolist()
         scaler = MinMaxScaler()
         if label == 1:
@@ -129,11 +129,31 @@ def preprocess_features(data_dict, label):  # label is 1 if switchover, 0 if lat
     return data_dict
 
 
-def create_sequence(data_dict, seq_length, label):
+def create_sequence(data_dict, seq_length, label,nfeatures):
     xs = []
     ys = []
     for i in range(len(data_dict) - seq_length - 1):
-        x = data_dict.drop([label], axis=1).iloc[i:(i + seq_length)]
+        # feautures used: Timestamp, lat, lon, rsrp, rsrq, modem_bw, norm_bw, frame_lost, total_bitrate, loss_rate - 10 features
+        if nfeatures == 3:
+            x = data_dict.drop([label,"celldecimal","imei","switchover_global","frame_latency_mean","drive_id","end_state",
+                            "latency_max","rssi","changes","qp_mean"], axis=1).iloc[i:(i + seq_length)] #all features except the label
+        elif nfeatures == 2:
+        # # feautures used: Timestamp,rsrp, rsrq, modem_bw, norm_bw, frame_lost, total_bitrate, loss_rate - 8 features
+            x = data_dict.drop([label, "celldecimal", "imei","switchover_global", "drive_id","frame_latency_mean", "end_state",
+                                "latency_max", "rssi", "changes", "qp_mean", "latitude", "longitude"], axis=1).iloc[
+                i:(i + seq_length)]  # all features except the label
+        #
+        # feautures used:  rsrp, rsrq
+        elif nfeatures == 1:
+            x = data_dict.drop([label,"modem_bandwidth", "norm_bw", "frame_lost", "frame_latency_mean", "total_bitrate", "loss_rate" ,"switchover_global"
+                                   ,"timestamp", "latitude", "longitude","celldecimal", "imei", "drive_id", "end_state", "latency_max", "rssi", "changes", "qp_mean"]
+                               , axis=1).iloc[i:(i + seq_length)]
+        else:
+        # # feautures used:  "latitude", "longitude",
+            x = data_dict.drop([label,"modem_bandwidth", "norm_bw", "frame_lost", "frame_latency_mean", "total_bitrate", "loss_rate" ,"switchover_global"
+                                   ,"timestamp", "rsrp", "rsrq","celldecimal", "imei", "drive_id", "end_state", "latency_max", "rssi", "changes", "qp_mean"]
+                               , axis=1).iloc[i:(i + seq_length)]
+
         y = data_dict[label].iloc[i + seq_length + 1]  # predict one second ahead
         x.dropna(inplace=True)
         if len(x) == seq_length:

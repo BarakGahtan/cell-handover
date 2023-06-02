@@ -12,10 +12,8 @@ import torch
 from matplotlib import pyplot as plt
 from torch import optim
 from torch.utils.tensorboard import SummaryWriter
-from sklearn.metrics import f1_score
 import architecture
 from load_preprocess_ds import create_sequence
-from imblearn.over_sampling import SMOTE
 from sklearn.metrics import confusion_matrix
 
 
@@ -24,15 +22,15 @@ def make_Tensor(array):
     return torch.from_numpy(array).float()
 
 
-def balance_data_set(seq, seq_label):
-    sm = SMOTE(sampling_strategy='minority', random_state=42)
-    seq_data_reshaped_for_balancing = seq.reshape(seq.shape[0], -1)
-    oversampled_seq, oversampled_labels = sm.fit_resample(seq_data_reshaped_for_balancing, seq_label)
-    oversampled_seq = oversampled_seq.reshape(oversampled_seq.shape[0], seq.shape[1], seq.shape[2])
-    return oversampled_seq, oversampled_labels
+# def balance_data_set(seq, seq_label):
+#     sm = SMOTE(sampling_strategy='minority', random_state=42)
+#     seq_data_reshaped_for_balancing = seq.reshape(seq.shape[0], -1)
+#     oversampled_seq, oversampled_labels = sm.fit_resample(seq_data_reshaped_for_balancing, seq_label)
+#     oversampled_seq = oversampled_seq.reshape(oversampled_seq.shape[0], seq.shape[1], seq.shape[2])
+#     return oversampled_seq, oversampled_labels
 
 
-def prepare_data_sets(data_frame, SEQ_LEN, balanced, name, label, training):
+def prepare_data_sets(data_frame, SEQ_LEN, balanced, name, label, training,nfeatures):
     if balanced:  # under sampling
         so_idxs = data_frame.index[data_frame['switchover_global'] == 1].tolist()
         no_so_idxs = [random.randint(so_idxs[0], so_idxs[-1]) for _ in range(len(so_idxs)) if random.randint(so_idxs[0], so_idxs[-1]) not in so_idxs]
@@ -53,7 +51,7 @@ def prepare_data_sets(data_frame, SEQ_LEN, balanced, name, label, training):
         random.shuffle(balanced_indexes)
         if label == 0 or label == 2:
             label_text = "latency_mean" if label == 0 else "loss_rate"
-            xs, ys = create_sequence(data_frame, SEQ_LEN, label_text)
+            xs, ys = create_sequence(data_frame, SEQ_LEN, label_text,nfeatures)
             xs = np.array(xs)
             ys = np.array(ys)
             data_set_size = xs.shape[0]
@@ -65,9 +63,8 @@ def prepare_data_sets(data_frame, SEQ_LEN, balanced, name, label, training):
         else:
             xs, ys = [], []
             for i in range(len(balanced_indexes)):
-                x = data_frame.iloc[balanced_indexes[i] - SEQ_LEN - 1:balanced_indexes[i] - 1].drop(["switchover_global"],
-                                                                                                    axis=1)  # that way it is to predict 1 second ahead.
-                y = data_frame["switchover_global"].iloc[balanced_indexes[i]]
+                x = data_frame.iloc[balanced_indexes[i] - SEQ_LEN - 1:balanced_indexes[i] - 1].drop(["switchover_global","latency_mean"],axis=1)  # that way it is to predict 1 second ahead.
+                y = data_frame["switchover_global","latency_mean"].iloc[balanced_indexes[i]]
                 x.dropna(inplace=True)
                 if len(x) == SEQ_LEN:
                     xs.append(x)
@@ -80,19 +77,6 @@ def prepare_data_sets(data_frame, SEQ_LEN, balanced, name, label, training):
             x_train, y_train = copy.copy(xs[:train_size]), copy.copy(ys[:train_size])
             X_val, y_val = copy.copy(xs[train_size:train_size + test_size]), copy.copy(ys[train_size:train_size + test_size])
             # X_test, y_test = copy.copy(xs[train_size + test_size:]), copy.copy(ys[train_size + test_size:])
-    else:  # balance with SMOTE
-        seq, seq_label = create_sequence(data_frame, SEQ_LEN)
-        seq, seq_label = balance_data_set(seq, seq_label)  # over sampled
-        data_set_size = seq.shape[0]
-        if training == 1:
-            train_size = int(data_set_size * 0.8)
-            test_size = int(int(data_set_size - train_size))
-            x_train, y_train = copy.copy(seq[:train_size]), copy.copy(seq_label[:train_size])
-            X_val, y_val = copy.copy(seq[train_size:train_size + test_size]), copy.copy(
-                seq_label[train_size:train_size + test_size])
-        else:
-            train_size = int(data_set_size)
-            x_train, y_train = copy.copy(seq[:train_size]), copy.copy(seq_label[:train_size])
     if training == 1:
         pickle.dump(x_train, open('x_train_' + name + '.pkl', "wb"))
         pickle.dump(y_train, open('y_train_' + name + '.pkl', "wb"))
@@ -112,7 +96,7 @@ def prepare_data_sets(data_frame, SEQ_LEN, balanced, name, label, training):
 
 class optimizer:
     def __init__(self, name, epochs, training_loader, validation_loader, test_loader, seq_len, number_of_features, hidden_size, learning_rate,
-                 batch_size, label):
+                 batch_size, label,device):
         self.name = name
         self.train_loader = training_loader
         self.epochs = epochs
@@ -122,6 +106,8 @@ class optimizer:
         self.number_of_features = number_of_features
         self.hidden_size = hidden_size
         self.net = architecture.cnn_lstm_hybrid(features=number_of_features, label=label)
+        self.device = device
+        self.net.to(device)
         self.learn_rate = learning_rate
         self.average_loss_validation, self.average_loss_training, self.average_loss_test = [], [], []
         self.avg_accuracy_prediction_1 = []
@@ -135,7 +121,7 @@ class optimizer:
         self.time_diff = 0
         self.batch_size = batch_size
         self.label = label
-        self.writer = SummaryWriter('models_label_' + str(self.label) + '/' + self.name + '_batch_size_' + str(self.batch_size))
+        self.writer = SummaryWriter('new_runs_models_label_' + str(self.label) + '/' + self.name + '_batch_size_' + str(self.batch_size))
 
     def write_to_file_switchover(self, flag):
         df_validation = pd.DataFrame({'avg_validation_loss': self.average_loss_validation,
@@ -161,12 +147,12 @@ class optimizer:
             )
             unified_df = pd.concat([df_validation, df_test], axis=0)
             unified_df.to_csv(
-                'models_label_' + str(self.label) + '/' + self.name + '_batch_size_' + str(self.batch_size) + "/" + self.name + '_batch_size_' + str(
+                'new_runs_models_label_' + str(self.label) + '/' + self.name + '_batch_size_' + str(self.batch_size) + "/" + self.name + '_batch_size_' + str(
                     self.batch_size) + '_' + str(
                     time.time()) + '.csv', index=False)
         else:
             df_validation.to_csv(
-                'models_label_' + str(self.label) + '/' + self.name + '_batch_size_' + str(self.batch_size) + "/" + self.name + '_batch_size_' + str(
+                'new_runs_models_label_' + str(self.label) + '/' + self.name + '_batch_size_' + str(self.batch_size) + "/" + self.name + '_batch_size_' + str(
                     self.batch_size) + '_' + str(
                     time.time()) + '.csv', index=False)
 
@@ -174,13 +160,13 @@ class optimizer:
         df_validation = pd.DataFrame({'avg_validation_loss': self.average_loss_validation,
                                       'avg_training_loss': self.average_loss_training,
                                       'predictions': self.predicted_latency_values,
-                                      'real_loss': self.real_latency_values,
+                                      'real_latency': self.real_latency_values,
                                       'tl_samples_batches_count': len(self.train_loader),
                                       'tl_sample_count': len(self.train_loader.dataset),
                                       'vl_samples_batches_count': len(self.validation_loader),
                                       'vl_sample_count': len(self.validation_loader.dataset)})
         df_validation.to_csv(
-            'models_label_' + str(self.label) + '/' + self.name + '_batch_size_' + str(self.batch_size) + "/" + self.name + '_' + str(
+            'new_runs_models_label_' + str(self.label) + '/' + self.name + '_batch_size_' + str(self.batch_size) + "/" + self.name + '_' + str(
                 time.time()) + '.csv', index=False)
 
     def main_training_loop_switchover(self):
@@ -189,7 +175,7 @@ class optimizer:
         optim_to_learn = optim.Adam(self.net.parameters(), lr=self.learn_rate)
         best_val_loss = float('inf')
         counter = 0
-        patience = 12
+        patience = 20
         # To view, start TensorBoard on the command line with:
         #   tensorboard --logdir=model/seq_64_20_all_imsi_batch_size_256
         # ...and open a browser tab to http://localhost:6006/
@@ -246,8 +232,8 @@ class optimizer:
             if avg_vloss < best_val_loss:  # Save the best model based on validation loss
                 best_val_loss = avg_vloss
                 torch.save(self.net.state_dict(),
-                           'models/' + self.name + '_batch_size_' + str(self.batch_size) + "/" + 'best_model_' + self.name + '_batch_size_' + str(
-                               self.batch_size) + '.pt')
+                           'new_runs_models_label_' + str(self.label) + '/' + self.name + '_batch_size_' + str(self.batch_size) + "/" + 'best_model_' + self.name + '_batch_size_' + str(
+                               self.batch_size) + '_' + str(time.time()) + '.pt')
                 counter = 0
             else:
                 counter = counter + 1
@@ -259,27 +245,26 @@ class optimizer:
                 self.time_diff = f"{int(minutes)}m {int(seconds)}s"
                 print("Early stopping at epoch {} model name {}".format(epoch, self.name))
                 break
-        torch.save(self.net.state_dict(), 'models/' + self.name + '_batch_size_' + str(self.batch_size) + "/" + self.name + '_batch_size' +
-                   str(self.batch_size) + str(time.time()) + '.pt')
+        torch.save(self.net.state_dict(),
+                   'new_runs_models_label_' + str(self.label) + '/' + self.name + '_batch_size_' + str(
+                       self.batch_size) + "/" + 'best_model_' + self.name + '_batch_size_' + str(
+                       self.batch_size) + '_' + str(time.time()) + '.pt')
         print('Finished Training')
         self.writer.flush()
         self.write_to_file_switchover(flag=False)
 
     def main_training_loop_latency(self):
-        criterion = torch.nn.MSELoss()
+        criterion = torch.nn.L1Loss()
         optim_to_learn = optim.Adam(self.net.parameters(), lr=self.learn_rate)
         best_val_loss = float('inf')
         counter = 0
-        patience = 15
-        # To view, start TensorBoard on the command line with:
-        #   tensorboard --logdir=model/seq_64_20_all_imsi_batch_size_256
-        # ...and open a browser tab to http://localhost:6006/
+        patience = 30
         start_time = time.time()
         for epoch in range(self.epochs):  # loop over the dataset multiple times
             train_loss = 0.0
             self.net.train()
             for i, data in enumerate(self.train_loader, 0):
-                inputs, labels = data
+                inputs, labels = data[0].to(self.device), data[1].to(self.device)
                 optim_to_learn.zero_grad()
                 outputs = self.net(inputs)
                 loss = criterion(outputs.squeeze(1), labels)
@@ -293,7 +278,7 @@ class optimizer:
             running_validation_labels = 0.0
             with torch.no_grad():
                 for j, vdata in enumerate(self.validation_loader, 0):
-                    vinputs, vlabels = vdata
+                    vinputs, vlabels = vdata[0].to(self.device), vdata[1].to(self.device)
                     voutputs = self.net(vinputs)
                     vloss = criterion(voutputs.squeeze(1), vlabels)
                     val_loss += vloss.item()
@@ -310,9 +295,9 @@ class optimizer:
             if val_loss < best_val_loss:  # Save the best model based on validation loss
                 best_val_loss = val_loss
                 torch.save(self.net.state_dict(),
-                           'models_label_' + str(self.label) + '/' + self.name + '_batch_size_' + str(
+                           'new_runs_models_label_' + str(self.label) + '/' + self.name + '_batch_size_' + str(
                                self.batch_size) + "/" + 'best_model_' + self.name + '_batch_size_' + str(
-                               self.batch_size) + '.pt')
+                               self.batch_size) + '_' + str(time.time()) + '.pt')
                 self.write_to_file_loss()
                 counter = 0
             else:
@@ -325,82 +310,181 @@ class optimizer:
                 self.time_diff = f"{int(minutes)}m {int(seconds)}s"
                 print("Early stopping at epoch {} model name {}".format(epoch, self.name))
                 break
-        print('Finished Training')
+        print("Finished training model name:{}".format(self.name))
         self.writer.flush()
         self.write_to_file_loss()
 
-
-def test_model_bce(test_loader, given_model, opts):
-    net = given_model
-    average_loss_test, true_positive_arr_06, false_pos_array_06 = [], [], []
-    true_positive_arr_07, false_pos_array_07 = [], []
-    writer = SummaryWriter('test/' + opts.model_name + '_batch_size_' + str(opts.batch_size))
+def test_model_bce(test_loader1, given_model1, test_loader2, given_model2,test_loader3, given_model3
+                   ,test_loader4, given_model4,opts):
+    net1,net2,net3,net4 = given_model1, given_model2, given_model3, given_model4
+    writer = SummaryWriter('test1/' + opts.model_name + '_batch_size_' + str(opts.batch_size))
     criterion = torch.nn.BCELoss()
-    for i in range(0, 10):
-        running_tloss, true_positive_running_06, false_positive_running_06 = 0.0, 0.0, 0.0
-        true_positive_running_07, false_positive_running_07 = 0.0, 0.0
+    for i in range(0, 1):
         with torch.no_grad():
-            for j, tdata in enumerate(test_loader, 0):
-                tinputs, tlabels = tdata
-                toutputs = net(tinputs)
-                tloss = criterion(toutputs.squeeze(1), tlabels)
-                running_tloss += tloss.item()
-                vector_3 = np.where(toutputs.numpy().squeeze(1) > 0.6, True, False)
-                vector_5 = np.where(toutputs.numpy().squeeze(1) > 0.7, True, False)
-                cm_06 = confusion_matrix(tlabels, vector_3, normalize='true')
-                cm_07 = confusion_matrix(tlabels, vector_5, normalize='true')
-                from sklearn import metrics
-                from sklearn.metrics import ConfusionMatrixDisplay
-                # cm_display_06 = metrics.ConfusionMatrixDisplay(confusion_matrix=cm_06, display_labels=[False, True])
-                # cm_display_07 = metrics.ConfusionMatrixDisplay(confusion_matrix=cm_07, display_labels=[False, True])
+            for j, tdata in enumerate(test_loader1, 0):
+                tinputs1, tlabels1 = tdata
+                toutputs1 = net1(tinputs1)
 
-                # Create the figure and subplots
-                fig, axs = plt.subplots(1, 2, figsize=(12, 4))
-                # Plot each confusion matrix
-                ConfusionMatrixDisplay(cm_06, display_labels=[False, True]).plot(ax=axs[0], cmap=plt.cm.Blues)
-                ConfusionMatrixDisplay(cm_07, display_labels=[False, True]).plot(ax=axs[1], cmap=plt.cm.Blues)
-                axs[0].set_title("Threshold 06")
-                axs[1].set_title("Threshold 07")
-                # plt.title("Sequence 64")
-                plt.savefig("sequence-128-20.pd0f", dpi=300)
-                plt.show()
+        with torch.no_grad():
+            for j, tdata in enumerate(test_loader2, 0):
+                tinputs2, tlabels2 = tdata
+                toutputs2 = net2(tinputs2)
 
-                true_positive_06 = cm_06[1][1]
-                false_positive_06 = cm_06[0][1]
-                true_positive_07 = cm_07[1][1]
-                false_positive_07 = cm_07[0][1]
-                true_positive_running_06 += true_positive_06
-                false_positive_running_06 += false_positive_06
-                true_positive_running_07 += true_positive_07
-                false_positive_running_07 += false_positive_07
-            avg_tloss = running_tloss / len(test_loader)
-            avg_tpositive_06 = true_positive_running_06 / len(test_loader)
-            avg_fpositive_06 = false_positive_running_06 / len(test_loader)
-            avg_tpositive_07 = true_positive_running_07 / len(test_loader)
-            avg_fpositive_07 = false_positive_running_07 / len(test_loader)
-            average_loss_test.append(avg_tloss)
-            true_positive_arr_06.append(true_positive_06)
-            false_pos_array_06.append(false_positive_06)
-            true_positive_arr_07.append(true_positive_07)
-            false_pos_array_07.append(false_positive_07)
-            # Log the running loss averaged per batch
-            writer.add_scalars('Test set', {'Test loss': avg_tloss}, j + 1)
-            writer.add_scalars('True accuracy Test set', {'true positive 06': avg_tpositive_06,
-                                                          'false positive 06': avg_fpositive_06,
-                                                          'true positive 07': avg_tpositive_07,
-                                                          'false positive 07': avg_fpositive_07}, j + 1)
+        with torch.no_grad():
+            for j, tdata in enumerate(test_loader3, 0):
+                tinputs3, tlabels3 = tdata
+                toutputs3 = net3(tinputs3)
+        with torch.no_grad():
+            for j, tdata in enumerate(test_loader4, 0):
+                tinputs4, tlabels4 = tdata
+                toutputs4 = net4(tinputs4)
 
-    writer.flush()
-    write_test_to_file_bce(true_positive=true_positive_arr_06, false_pos=false_pos_array_06, true_positive2=true_positive_arr_07,
-                           false_pos2=false_pos_array_07, test_loss=average_loss_test, test_loader=test_loader, seq_len=opts.sequence_length)
+        # vector_3 = np.where(toutputs3.numpy().squeeze(1) > 0.6, True, False)
+        # vector_5 = np.where(toutputs3.numpy().squeeze(1) > 0.7, True, False)
+        # cm_06 = confusion_matrix(tlabels3, vector_3, normalize='true')
+        # cm_07 = confusion_matrix(tlabels3, vector_5, normalize='true')
+        # from sklearn.metrics import ConfusionMatrixDisplay
+        # fig, axs = plt.subplots(1, 2, figsize=(12, 4))
+        # ConfusionMatrixDisplay(cm_06, display_labels=[False, True]).plot(ax=axs[0], cmap=plt.cm.Blues)
+        # ConfusionMatrixDisplay(cm_07, display_labels=[False, True]).plot(ax=axs[1], cmap=plt.cm.Blues)
+        # axs[0].set_title("Threshold 06")
+        # axs[1].set_title("Threshold 07")
+        # # plt.title("Sequence 64")
+        # plt.savefig("9-features-128"+ ".pdf", dpi=300)
+        # plt.show()
+        import numpy as np
+        import matplotlib.pyplot as plt
+        from sklearn.metrics import roc_curve, auc
+
+        # Define the predictions and labels for each model
+        preds1, labels1 = toutputs1, tlabels1
+        preds2, labels2 = toutputs2, tlabels2
+        preds3, labels3 = toutputs3, tlabels3
+        preds4, labels4 = toutputs4, tlabels4
+        # Calculate the false positive rate and true positive rate for each model
+        fpr1, tpr1, _ = roc_curve(labels1, preds1)
+        fpr2, tpr2, _ = roc_curve(labels2, preds2)
+        fpr3, tpr3, _ = roc_curve(labels3, preds3)
+        fpr4, tpr4, _ = roc_curve(labels4, preds4)
+
+        # Calculate the area under the curve for each model
+        roc_auc1 = auc(fpr1, tpr1)
+        roc_auc2 = auc(fpr2, tpr2)
+        roc_auc3 = auc(fpr3, tpr3)
+        roc_auc4 = auc(fpr4, tpr4)
+        plt.figure(figsize=(12, 10))
+        # plt.plot(fpr1, tpr1, color='blue', lw=2, label='32 window length (AUC = %0.2f)' % roc_auc1)
+        # plt.plot(fpr2, tpr2, color='red', lw=2, label='64 window length (AUC = %0.2f)' % roc_auc2)
+        # plt.plot(fpr3, tpr3, color='orange', lw=2, label='128 window length (AUC = %0.2f)' % roc_auc3)
+        # plt.plot(fpr3, tpr3, color='green', lw=1, label='9 Features (AUC = %0.2f)' % roc_auc4)
+
+        plt.plot(fpr1, tpr1, color='blue', lw=2, label='GPS only (AUC = %0.2f)' % roc_auc1)
+        plt.plot(fpr2, tpr2, color='red', lw=2, label='RSRP & RSRQ (AUC = %0.2f)' % roc_auc2)
+        plt.plot(fpr4, tpr4, color='orange', lw=2, label='7 Features (AUC = %0.2f)' % roc_auc4)
+        plt.plot(fpr3, tpr3, color='green', lw=2, label='9 Features (AUC = %0.2f)' % roc_auc3)
+
+        # # Plot the ROC curves for all three models on the same plot
+        # plt.plot(fpr1, tpr1, color='blue', lw=1, label='GPS (AUC = %0.2f)' % roc_auc1)
+        # plt.plot(fpr2, tpr2, color='red', lw=1, label='RSRP and RSRQ (AUC = %0.2f)' % roc_auc2)
+        # # plt.plot(fpr4, tpr4, color='orange', lw=1, label='7 Features (AUC = %0.2f)' % roc_auc4)
+        # plt.plot(fpr3, tpr3, color='green', lw=1, label='9 Features (AUC = %0.2f)' % roc_auc3)
+        # # Plot the random model curve
+        plt.plot([0, 1], [0, 1], color='gray', lw=2, linestyle='--')
+
+        # Set the x and y limits of the plot
+        plt.xlim([0.0, 1.0])
+        plt.ylim([0.0, 1.05])
+        # Add a grid to the plot
+        plt.grid(True)
+        # Add labels and legends to the plot
+        plt.xlabel('False Positive Rate', fontsize=16)
+        plt.ylabel('True Positive Rate', fontsize=16)
+        plt.legend(loc="lower right", fontsize=16)
+
+        # Increase the size of the tick labels
+        plt.tick_params(axis='both', which='major', labelsize=16)
+        # plt.title('ROC Curves for Four different input features for a sliding window of 64 seconds')
+        # plt.title('Different input features')
+        # Save the plot
+        plt.savefig("diff-features-64-static"+".pdf", dpi=600, bbox_inches='tight')
+        # Display the plot
+        plt.tight_layout()
+        plt.show()
+        x =5
+    # write_test_to_file_bce(true_positive=true_positive_arr_06, false_pos=false_pos_array_06, true_positive2=true_positive_arr_07,
+    #                        false_pos2=false_pos_array_07, test_loss=average_loss_test, test_loader=test_loader, seq_len=opts.sequence_length)
+
+# def test_model_bce(test_loader, given_model, opts):
+#     net = given_model
+#     average_loss_test, true_positive_arr_06, false_pos_array_06 = [], [], []
+#     true_positive_arr_07, false_pos_array_07 = [], []
+#     writer = SummaryWriter('test/' + opts.model_name + '_batch_size_' + str(opts.batch_size))
+#     criterion = torch.nn.BCELoss()
+#     for i in range(0, 1):
+#         running_tloss, true_positive_running_06, false_positive_running_06 = 0.0, 0.0, 0.0
+#         true_positive_running_07, false_positive_running_07 = 0.0, 0.0
+#         with torch.no_grad():
+#             for j, tdata in enumerate(test_loader, 0):
+#                 tinputs, tlabels = tdata
+#                 toutputs = net(tinputs)
+#                 tloss = criterion(toutputs.squeeze(1), tlabels)
+#                 running_tloss += tloss.item()
+#                 vector_3 = np.where(toutputs.numpy().squeeze(1) > 0.6, True, False)
+#                 vector_5 = np.where(toutputs.numpy().squeeze(1) > 0.7, True, False)
+#                 cm_06 = confusion_matrix(tlabels, vector_3, normalize='true')
+#                 cm_07 = confusion_matrix(tlabels, vector_5, normalize='true')
+#                 from sklearn import metrics
+#                 from sklearn.metrics import ConfusionMatrixDisplay
+#                 # cm_display_06 = metrics.ConfusionMatrixDisplay(confusion_matrix=cm_06, display_labels=[False, True])
+#                 # cm_display_07 = metrics.ConfusionMatrixDisplay(confusion_matrix=cm_07, display_labels=[False, True])
+#
+#                 # Create the figure and subplots
+#                 fig, axs = plt.subplots(1, 2, figsize=(12, 4))
+#                 # Plot each confusion matrix
+#                 ConfusionMatrixDisplay(cm_06, display_labels=[False, True]).plot(ax=axs[0], cmap=plt.cm.Blues)
+#                 ConfusionMatrixDisplay(cm_07, display_labels=[False, True]).plot(ax=axs[1], cmap=plt.cm.Blues)
+#                 axs[0].set_title("Threshold 06")
+#                 axs[1].set_title("Threshold 07")
+#                 # plt.title("Sequence 64")
+#                 plt.savefig("no-gps-sequence"+ opts.model_name+ ".pdf", dpi=300)
+#                 plt.show()
+#
+#             #     true_positive_06 = cm_06[1][1]
+#             #     false_positive_06 = cm_06[0][1]
+#             #     true_positive_07 = cm_07[1][1]
+#             #     false_positive_07 = cm_07[0][1]
+#             #     true_positive_running_06 += true_positive_06
+#             #     false_positive_running_06 += false_positive_06
+#             #     true_positive_running_07 += true_positive_07
+#             #     false_positive_running_07 += false_positive_07
+#             # avg_tloss = running_tloss / len(test_loader)
+#             # avg_tpositive_06 = true_positive_running_06 / len(test_loader)
+#             # avg_fpositive_06 = false_positive_running_06 / len(test_loader)
+#             # avg_tpositive_07 = true_positive_running_07 / len(test_loader)
+#             # avg_fpositive_07 = false_positive_running_07 / len(test_loader)
+#             # average_loss_test.append(avg_tloss)
+#             # true_positive_arr_06.append(true_positive_06)
+#             # false_pos_array_06.append(false_positive_06)
+#             # true_positive_arr_07.append(true_positive_07)
+#             # false_pos_array_07.append(false_positive_07)
+#             # # Log the running loss averaged per batch
+#             # writer.add_scalars('Test set', {'Test loss': avg_tloss}, j + 1)
+#             # writer.add_scalars('True accuracy Test set', {'true positive 06': avg_tpositive_06,
+#             #                                               'false positive 06': avg_fpositive_06,
+#             #                                               'true positive 07': avg_tpositive_07,
+#             #                                               'false positive 07': avg_fpositive_07}, j + 1)
+#
+#     # writer.flush()
+#     # write_test_to_file_bce(true_positive=true_positive_arr_06, false_pos=false_pos_array_06, true_positive2=true_positive_arr_07,
+#     #                        false_pos2=false_pos_array_07, test_loss=average_loss_test, test_loader=test_loader, seq_len=opts.sequence_length)
 
 
 def test_model_mse(test_loader, given_model, opts):
     net = given_model
     average_loss_test = []
     predictions, true_labels, ratio = [], [], []
-    writer = SummaryWriter('test/' + opts.model_name + '_batch_size_' + str(opts.batch_size))
-    criterion = torch.nn.MSELoss()
+    # writer = SummaryWriter('test/' + opts.model_name + '_batch_size_' + str(opts.batch_size))
+    criterion = torch.nn.L1Loss()
     for i in range(0, 1):
         running_tloss = 0.0
         running_test_predition, running_test_labels = 0.0, 0.0
@@ -409,22 +493,18 @@ def test_model_mse(test_loader, given_model, opts):
                 tinputs, tlabels = tdata
                 toutputs = net(tinputs)
                 tloss = criterion(toutputs.squeeze(1), tlabels)
+                # print('model:{} and the MAE loss is: {}'.format(opts.model_name, tloss.item()))
                 running_tloss += tloss.item()
                 running_test_predition += np.array(toutputs.squeeze(1).tolist()).mean()
                 running_test_labels += np.array(tlabels.tolist()).mean()
             avg_tloss = running_tloss / len(test_loader)
+            print('model:{} and the MAE loss is: {}'.format(opts.model_name, avg_tloss))
             running_test_predition /= len(test_loader)
             running_test_labels /= len(test_loader)
             average_loss_test.append(avg_tloss)
             predictions.append(running_test_predition)
             true_labels.append(running_test_labels)
             ratio.append(running_test_predition / running_test_labels)
-            # Log the running loss averaged per batch
-            writer.add_scalars('Test set', {'Test loss': avg_tloss}, j + 1)
-            writer.add_scalars('True accuracy Test set', {'predictions': running_test_predition,
-                                                          'true labels': running_test_labels,
-                                                          'ratio': running_test_predition}, j + 1)
-    writer.flush()
     write_test_to_file_mse(test_loss=average_loss_test, pred_arr=predictions, label_arr=true_labels, ratio_arr=ratio, seq_len=opts.sequence_length,
                            test_loader=test_loader)
 

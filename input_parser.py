@@ -27,7 +27,7 @@ class Parser(object):
         parser_.add_argument('-balanced', '--bdataset', default=1, type=int,
                              help='if 1 then under sample the data, if 0 then use SMOTE to balance the data')
         parser_.add_argument('-bs', '--batch_size', default=32, type=int, help='batch size')
-        parser_.add_argument('-epoch', '--epoch_number', default=1000, type=int, help='number of epochs')
+        parser_.add_argument('-epoch', '--epoch_number', default=10000, type=int, help='number of epochs')
         parser_.add_argument('-lr', '--learn_rate', default=0.001, type=float, help='learning rate')
         parser_.add_argument('-lff', '--load_from_files', default=1, type=int, help='if to preprocess or not the data')
         parser_.add_argument('-mso', '--max_switch_over', default=0, type=int, help='Generate data set with maximum switchover per drive')
@@ -35,7 +35,8 @@ class Parser(object):
         parser_.add_argument('-name', '--model_name', default="", type=str, help='name of the model')
         parser_.add_argument('-tt', '--to_train', default=0, type=int, help='If to send the model to train')
         parser_.add_argument('-test', '--to_test', default=0, type=int, help='If to send the model to test')
-        parser_.add_argument('-pds', '--prepare_data_set', default=0, type=int, help='If to prepare for training == 1, prepare for test = 0')
-        parser_.add_argument('-l', '--label', default=1, type=int, help='label: latency = 0, switchover = 1, loss = 2')
+        parser_.add_argument('-pds', '--prepare_data_set', default=1, type=int, help='If to prepare for training == 1, prepare for test = 0')
+        parser_.add_argument('-l', '--label', default=1, type=int, help='label: latency = 0, switchover = 1, loss = 2, handover and latency = 3')
+        parser_.add_argument('-nf', '--nfeatures', default=1, type=int, help='label: gps only = 0, rsrponly = 1, allfeaturesnogps = 2, all = 3')
         args = parser_.parse_args()
         return args
