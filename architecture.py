@@ -96,7 +96,6 @@ class cnn_lstm_hybrid(nn.Module):
 
         if self.label == 0 or self.label == 2:
             return self.sigmoid(x)
-
         elif self.label == 3:
             # regression output
             x_reg = self.dense3_reg(x)

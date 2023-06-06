@@ -1,4 +1,6 @@
 import copy
+import pickle
+
 import numpy as np
 import pandas as pd
 from sklearn.impute import KNNImputer
@@ -6,11 +8,15 @@ from sklearn.preprocessing import MinMaxScaler
 import cell_calculation
 
 def init_drives_dataset(pickle_name, number_of_drives_for_ds,testing):
+    # with open(pickle_name, 'rb') as file:
+    #     obj = pickle.Unpickler(file).load()
     big_df = pd.read_pickle(pickle_name)
     if testing == 0:
         big_df = big_df[big_df['date'] >= '20230208'] #testing
     else:
-        big_df = big_df[big_df['date'] >= '20221201']  # training According to the drives specific latest with DriveU algo.
+        big_df = big_df[big_df['date'] >= '20221201']
+        big_df = big_df[big_df['date'] < '20230208' ]
+        x =6
     # big_df.drop(columns=['imei', 'changes', 'end_state', 'operator', 'drive_id', 'rssi', 'latency_max', 'qp_mean', 'frame_lost',
     #                      'frame_latency_mean', 'latency_mean'], inplace=True, axis=1) #with latency_mean
     # big_df.drop(columns=['imei', 'imsi', 'changes', 'end_state', 'operator', 'drive_id','globalcellid'], axis=1)  # with latency_mean
