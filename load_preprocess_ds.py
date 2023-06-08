@@ -16,7 +16,7 @@ def init_drives_dataset(pickle_name, number_of_drives_for_ds,testing):
     else:
         big_df = big_df[big_df['date'] >= '20221201']
         big_df = big_df[big_df['date'] < '20230208' ]
-        x =6
+        x = 1
     # big_df.drop(columns=['imei', 'changes', 'end_state', 'operator', 'drive_id', 'rssi', 'latency_max', 'qp_mean', 'frame_lost',
     #                      'frame_latency_mean', 'latency_mean'], inplace=True, axis=1) #with latency_mean
     # big_df.drop(columns=['imei', 'imsi', 'changes', 'end_state', 'operator', 'drive_id','globalcellid'], axis=1)  # with latency_mean
